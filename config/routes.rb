@@ -1,6 +1,8 @@
 Rails.application.routes.draw do
+
   resources :subapps
   devise_for :users
+  resources :images
   resources :users
   root 'subapps#index'
 

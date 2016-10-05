@@ -1,0 +1,17 @@
+Welcome to Mirraw
+=@user.email
+.logout
+  = button_to 'logout', destroy_user_session_path, :method => :delete   
+%h1 Applications
+-if can? :manage, @user
+  = button_to 'create new App', new_subapp_path, method: 'get'
+%table
+  %tbody
+    - @subapps.each do |subapp|
+      %tr
+        %td 
+          =subapp.appname
+        %td= button_to 'open', subapp, method: 'get'
+        -if can? :manage, @user
+          %td= link_to 'Edit', edit_subapp_path(subapp), method: 'get'
+          %td= link_to 'Destroy', subapp, :method => :delete, :data => { :confirm => 'Are you sure?' }

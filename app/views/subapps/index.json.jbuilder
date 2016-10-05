@@ -1,0 +1,1 @@
+json.array! @subapps, partial: 'subapps/subapp', as: :subapp

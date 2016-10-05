@@ -1,0 +1,15 @@
+= form_for @subapp do |f|
+  - if @subapp.errors.any?
+    #error_explanation
+      %h2= "#{pluralize(@subapp.errors.count, "error")} prohibited this subapp from being saved:"
+      %ul
+        - @subapp.errors.full_messages.each do |msg|
+          %li= msg
+  .input-group
+    = f.label :name
+    = f.text_field :appname
+  .input-group
+    = f.label :description
+    = f.text_field :description
+  .actions
+    = f.submit 'Save'

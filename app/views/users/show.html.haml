@@ -1,0 +1,6 @@
+- if notice
+  %p notice
+%p= @user.email
+-if @user.has_role? :admin
+  = link_to 'Edit', edit_user_path(@user)
+  = link_to 'Back', users_path

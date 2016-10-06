@@ -21,6 +21,7 @@ gem 'rolify'
 gem 'activesupport'
 gem 'bootstrap-sass'
 gem 'cancancan'
+gem 'better_errors'
 # Use jquery as the JavaScript library
 gem 'jquery-rails'
 # Turbolinks makes navigating your web application faster. Read more: https://github.com/turbolinks/turbolinks

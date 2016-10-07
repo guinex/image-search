@@ -22,6 +22,11 @@ gem 'activesupport'
 gem 'bootstrap-sass'
 gem 'cancancan'
 gem 'better_errors'
+gem 'phashion'
+gem 'activerecord-import'
+gem 'smarter_csv'
+gem 'nokogiri'
+gem 'rest-client'
 # Use jquery as the JavaScript library
 gem 'jquery-rails'
 # Turbolinks makes navigating your web application faster. Read more: https://github.com/turbolinks/turbolinks

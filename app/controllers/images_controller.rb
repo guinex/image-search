@@ -10,6 +10,7 @@ class ImagesController < ApplicationController
   # GET /images/1
   # GET /images/1.json
   def show
+
   end
 
   # GET /images/new
@@ -61,6 +62,15 @@ class ImagesController < ApplicationController
     end
   end
 
+  def search_and_upload_image
+    if (params[:csv_file]).present?
+      file = params[:csv_file].read
+      filename = 'image_upload_data.csv'
+      File.open(File.join('/tmp/', filename), 'wb') { |f| f.write file }
+      Image.process_images
+    end
+  end
+
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_image
@@ -69,6 +79,6 @@ class ImagesController < ApplicationController
 
     # Never trust parameters from the scary internet, only allow the white list through.
     def image_params
-      params.fetch(:image, {})
+      params.fetch(:image, {}).permit(:all)
     end
 end

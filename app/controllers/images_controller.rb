@@ -68,6 +68,13 @@ class ImagesController < ApplicationController
       filename = 'image_upload_data.csv'
       File.open(File.join('/tmp/', filename), 'wb') { |f| f.write file }
       Image.process_images
+    elsif params[:design_id].present?
+      response = Image.search_image(params[:design_id])
+      unless response == "606"
+        render json: {result: response}
+      else
+        render json: {alert: "No Designs Found"}  
+      end
     end
   end
 

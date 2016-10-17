@@ -1,0 +1,10 @@
+= form_for @image_search do |f|
+  - if @image_search.errors.any?
+    #error_explanation
+      %h2= "#{pluralize(@image_search.errors.count, "error")} prohibited this image_search from being saved:"
+      %ul
+        - @image_search.errors.full_messages.each do |msg|
+          %li= msg
+
+  .actions
+    = f.submit 'Save'

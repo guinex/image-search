@@ -1,0 +1,1 @@
+json.array! @image_searches, partial: 'image_searches/image_search', as: :image_search

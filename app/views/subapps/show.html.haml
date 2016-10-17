@@ -12,7 +12,10 @@
         = label_tag :csv_file, 'CSV File'
         = file_field_tag :csv_file, :accept => 'text/csv', :required => true
         = submit_tag :update
-
+    #mirraw_image_upload
+      = form_tag search_and_upload_panel_url, :method => 'POST', :multipart => true do
+        = hidden_field_tag :upload_images, 'upload_images'
+        = submit_tag :upload_using_readonly
 -if can? :manage, :admin
   = link_to 'Edit', edit_subapp_path(@subapp)
   = link_to 'Back', subapps_path

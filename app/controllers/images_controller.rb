@@ -62,22 +62,6 @@ class ImagesController < ApplicationController
     end
   end
 
-  def search_and_upload_image
-    if (params[:csv_file]).present?
-      file = params[:csv_file].read
-      filename = 'image_upload_data.csv'
-      File.open(File.join('/tmp/', filename), 'wb') { |f| f.write file }
-      Image.process_images
-    elsif params[:design_id].present?
-      response = Image.search_image(params[:design_id])
-      unless response == "606"
-        render json: {result: response}
-      else
-        render json: {alert: "No Designs Found"}  
-      end
-    end
-  end
-
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_image
@@ -86,6 +70,6 @@ class ImagesController < ApplicationController
 
     # Never trust parameters from the scary internet, only allow the white list through.
     def image_params
-      params.fetch(:image, {}).permit(:all)
+      params.fetch(:image, {})
     end
 end

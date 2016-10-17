@@ -1,17 +1,21 @@
 %p#notice= notice
-= form_for @subapp do |f|
-  - if @subapp.errors.any?
-    #error_explanation
-      %h2= "#{pluralize(@subapp.errors.count, "error")} prohibited this subapp from being saved:"
-      %ul
-        - @subapp.errors.full_messages.each do |msg|
-          %li= msg
-  .input-group
-    = f.label :design_is
-    = f.text_field :design_id
-  .actions
-    = f.submit 'Save'
-
+-case @subapp.appname
+  -when 'Image Search'
+    %h2 Image Search
+    #mirraw_image_search
+      = form_tag search_and_upload_panel_url, :method => 'POST' do
+        = label_tag(:design_id, "Search for:")
+        = text_field_tag(:design_id)
+        = submit_tag("Search")
+    #mirraw_image_upload
+      = form_tag search_and_upload_panel_url, :method => 'POST', :multipart => true do
+        = label_tag :csv_file, 'CSV File'
+        = file_field_tag :csv_file, :accept => 'text/csv', :required => true
+        = submit_tag :update
+    #mirraw_image_upload
+      = form_tag search_and_upload_panel_url, :method => 'POST', :multipart => true do
+        = hidden_field_tag :upload_images, 'upload_images'
+        = submit_tag :upload_using_readonly
 -if can? :manage, :admin
   = link_to 'Edit', edit_subapp_path(@subapp)
   = link_to 'Back', subapps_path

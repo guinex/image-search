@@ -62,21 +62,36 @@ class ImageSearchesController < ApplicationController
   end
 
   def search_and_upload_image
-    if (params[:csv_file]).present?
-      file = params[:csv_file].read
-      filename = 'image_upload_data.csv'
-      File.open(File.join('/tmp/', filename), 'wb') { |f| f.write file }
-      ImageSearch.process_images
-    elsif params[:design_id].present?
-      response = ImageSearch.search_image(params[:design_id])
-      unless response == "606"
-        render json: {result: response}
-      else
-        render json: {alert: "No Designs Found"}  
+    if request.post?
+      if (params[:csv_file]).present?
+        file = params[:csv_file].read.force_encoding("ASCII-8BIT").encode('UTF-8', undef: :replace, replace: '')
+        filename = 'image_upload_data.csv'
+        File.open(File.join('/tmp/', filename), 'w+') { |f| f.write file }
+        ImageSearch.process_images
+        send_file('/tmp/failed_image_data.csv')
+      elsif params[:design_id].present?
+        @url,@similar_url = ImageSearch.search_image(params[:design_id])
+        # unless response == "606"
+        #   render json: {result: response}
+        # else
+        #   render json: {alert: "No Designs Found"}
+        # end
+      elsif params[:upload_images].present?
+        ImageSearch.automated_upload_new_images
       end
-    elsif params[:upload_images].present?
-      ImageSearch.automated_upload_new_images
     end
+  end
+
+  def remove_similar_design
+    ImageSearch.remove_similar(params[:id],params[:design_id])
+  end
+
+  def add_similar_design
+    ImageSearch.add_similar(params[:id],params[:design_id])
+  end
+
+  def re_check_similar
+    ImageSearch.find_similar_in_group(params[:id])
   end
 
   private

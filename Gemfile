@@ -19,10 +19,12 @@ gem 'coffee-rails', '~> 4.2'
 gem 'devise'
 gem 'rolify'
 gem 'cancancan'
-
+gem 'delayed_job_active_record'
 gem 'activesupport'
 gem 'bootstrap-sass'
 gem 'better_errors'
+gem 'smartcropper'
+gem 'miro'
 #image processing
 gem 'phashion'
 # for reading and creating data

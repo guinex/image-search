@@ -1,8 +1,12 @@
 class ApiController < ApplicationController
   def get_similar_designs
-    images = ImageSearch.where('design_id in (?)',params[:id]).pluck(:fingerprint)
-    designs = ImageSearch.where(fingerprint: fingerprint).pluck(:design_id)
-    designs = designs.delete_if{|id| params[:id].split(',').include?(id)}
-    return designs
+    fingerprint = ImageSearch.where('design_id in (?)',params[:id]).pluck(:fingerprint)
+    designs = ImageSearch.select('design_id,similar_designs').where(fingerprint: fingerprint)
+    if params[:search].present? && params[:search] == 'exact'
+      response = {id: designs.pluck(:design_id).flatten.uniq.join(',')}
+    else
+      response = {id: designs.pluck(:design_id).flatten.uniq.join(','), similar_designs: designs.pluck(:similar_designs).flatten.uniq.join(',')}
+    end
+    render :json => response
   end
 end

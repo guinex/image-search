@@ -8,14 +8,10 @@
     = form_tag search_and_upload_panel_url, :method => 'POST', :multipart => true do
       = label_tag :csv_file, 'CSV File'
       = file_field_tag :csv_file, :accept => 'text/csv', :required => true
-      = submit_tag :update
-  #mirraw_image_upload
-    = form_tag search_and_upload_panel_url, :method => 'POST', :multipart => true do
-      = hidden_field_tag :upload_images, 'upload_images'
-      = submit_tag :upload_using_readonly    
+      = submit_tag :update   
 :css
   table, th, td, tr{
-    border:2px solid black;
+    border:1px solid black;
   }
 
 -if @url.present?
@@ -28,7 +24,7 @@
       = hidden_field_tag :id, @url.keys.first
       = text_field_tag :design_id, ''
       = submit_tag :add_similar
-  #similar_images{style:"float:left"}  
+  #same_images{style:"float:left"}  
     %table
       %tr
         %td

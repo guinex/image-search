@@ -1,0 +1,2 @@
+class FailedImage < ApplicationRecord
+end

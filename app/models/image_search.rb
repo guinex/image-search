@@ -180,9 +180,9 @@ class ImageSearch < ApplicationRecord
     extension = (last_separator_at.present?) ? file_name[last_separator_at..file_name.length] : '.'
     last_separator_at = file.length + 1  if extension == '.'
     unless thumb.present?
-      file_path = 'https://s3-ap-southeast-1.amazonaws.com/mirraw/images/'+"#{id}"+"/"+"#{file_name[0..(last_separator_at-1)]}"+'_original'+"#{extension}"+'?3424323'
+      file_path = 'http://s3-ap-southeast-1.amazonaws.com/mirraw/images/'+"#{id}"+"/"+"#{file_name[0..(last_separator_at-1)]}"+'_original'+"#{extension}"+'?3424323'
     else
-      file_path = 'https://s3-ap-southeast-1.amazonaws.com/mirraw/images/'+"#{id}"+"/"+"#{file_name[0..(last_separator_at-1)]}"+'_thumb'+"#{extension}"+'?3424323'
+      file_path = 'http://s3-ap-southeast-1.amazonaws.com/mirraw/images/'+"#{id}"+"/"+"#{file_name[0..(last_separator_at-1)]}"+'_thumb'+"#{extension}"+'?3424323'
     end
     url = URI.parse(file_path)
     uri = URI(url)

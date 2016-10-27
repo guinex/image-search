@@ -6,7 +6,7 @@ end
 
 desc "This task is called by the Heroku schedular to create similar images"
 task :process_similar_images => :environment do
-  images = ImageSearch.select('id, design_id, color_histogram').where('design_id is not null').where('id > ?',25324).order("RANDOM()").limit(1000)
+  images = ImageSearch.select('id, design_id, color_histogram').where('design_id is not null').where('processed_for_similar_at is null or processed_for_similar_at > ?',1.week.from_now).order("RANDOM()").limit(1000)
   if images.present?
     images.update_all(processed_for_similar_at: Time.zone.now())
     ImageSearch.automated_update_similar_designs(images)

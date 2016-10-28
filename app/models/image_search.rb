@@ -45,8 +45,8 @@ class ImageSearch < ApplicationRecord
     similar_designs = ImageSearch.where(fingerprint: fingerprint).pluck(:similar_designs)
     result = result.compact
     similar_result = similar_designs.flatten.compact
-    similar_designs_url = similar_result.nil? ? {} : ImageSearch.get_thumbnail(similar_result.join(','))
-    design_url = result.nil? ? {} : ImageSearch.get_thumbnail(result.join(','))
+    similar_designs_url = similar_result.nil? ? {} : ImageSearch.get_thumbnail(similar_result)
+    design_url = result.nil? ? {} : ImageSearch.get_thumbnail(result)
     return design_url, similar_designs_url
   end
 
@@ -87,14 +87,11 @@ class ImageSearch < ApplicationRecord
           next
         end
       rescue
-        failed_batch << img[:id] 
+        failed_batch << ([]<< img[:id])
         next
       end
     end
-    File.open("/tmp/failed_image_data.csv", "a+") do |f|
-      f.write Time.zone.now()
-      f.write failed_batch
-    end
+    FailedImage.import ['image_id'], failed_batch, validate:false
     return unless images_to_insert.present?
     insert_and_update_images(images_to_insert) 
   end
@@ -117,11 +114,6 @@ class ImageSearch < ApplicationRecord
     color_histogram_hash={total: total,color_graph: color_graph, avg: color_graph.values.inject(:+)/total, color_hash: color_hash} 
     puts color_hash
     color_histogram_hash
-  end
-
-  def self.update_failed_images(failed_batch)
-    format_to_insert = ['failed_image_id']
-    FailedImage.import format_to_insert,failed_batch, validate: false
   end
 
   ###############################################
@@ -180,9 +172,9 @@ class ImageSearch < ApplicationRecord
     extension = (last_separator_at.present?) ? file_name[last_separator_at..file_name.length] : '.'
     last_separator_at = file.length + 1  if extension == '.'
     unless thumb.present?
-      file_path = 'https://s3-ap-southeast-1.amazonaws.com/mirraw/images/'+"#{id}"+"/"+"#{file_name[0..(last_separator_at-1)]}"+'_original'+"#{extension}"+'?3424323'
+      file_path = 'http://s3-ap-southeast-1.amazonaws.com/mirraw/images/'+"#{id}"+"/"+"#{file_name[0..(last_separator_at-1)]}"+'_original'+"#{extension}"+'?3424323'
     else
-      file_path = 'https://s3-ap-southeast-1.amazonaws.com/mirraw/images/'+"#{id}"+"/"+"#{file_name[0..(last_separator_at-1)]}"+'_thumb'+"#{extension}"+'?3424323'
+      file_path = 'http://s3-ap-southeast-1.amazonaws.com/mirraw/images/'+"#{id}"+"/"+"#{file_name[0..(last_separator_at-1)]}"+'_thumb'+"#{extension}"+'?3424323'
     end
     url = URI.parse(file_path)
     uri = URI(url)
@@ -223,13 +215,15 @@ class ImageSearch < ApplicationRecord
   def self.get_thumbnail(design_ids)
     image_array = {}
     if design_ids.present?
-      query = "SELECT i.id, i.design_id, i.photo_file_name FROM designs d, images i WHERE d.id in (#{design_ids}) and d.id = i.design_id and i.kind = 'master'"
-      connection = ReadonlyConnection.connect
-      results = connection.execute(query)
-      connection.disconnect!
-      ReadonlyConnection.reset_connection
-      results.each do |image|
-        image_array[image['design_id']] = check_if_url_exists(image['id'],image['photo_file_name'],thumb = true) 
+      image_search = ImageSearch.where(design_id: design_ids)
+      image_search.each do |image|
+        phashion_object = Marshal::load(image.phash_obj)
+        path = phashion_object.filename.split('_')
+        ext_path = path.last.gsub(/original.|zoom./,'thumb.')
+        path.delete(path.last)
+        path.push(* ext_path)
+        path = path.join('_')
+        image_array["#{image.design_id}"] = path
       end
     end
     image_array
@@ -240,12 +234,13 @@ class ImageSearch < ApplicationRecord
     similar_design_array = []
     image_search.each_with_index do |image,index|
       img_phash_obj = Marshal::load(image.phash_obj)
-      image_search.similar_designs.each_with_index do |design_id,in_index|
+      image.similar_designs.each_with_index do |design_id,in_index|
         in_image = ImageSearch.where(design_id: design_id).first        
-        in_img_phash_obj = Marshal::load(in_image.phash_object)
+        in_img_phash_obj = Marshal::load(in_image.phash_obj)
         unless (img_phash_obj).duplicate?(in_img_phash_obj, :threshold => 12)
-          image.similar_designs.delete(in_image.design_id)
-          similar_design_array.push(* image.similar_designs)
+          image.similar_designs.delete(design_id)
+        else  
+          similar_design_array.push(* design_id)
         end  
       end
     end

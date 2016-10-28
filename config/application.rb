@@ -8,7 +8,7 @@ Bundler.require(*Rails.groups)
 
 module MirrawInHouse
   class Application < Rails::Application
-    # config.autoload_paths << Rails.root.join('lib')
+    config.eager_load_paths << Rails.root.join('lib')
     # config.autoload_paths += %W(#{config.root}/lib)
     # config.autoload_paths += Dir["#{config.root}/lib/**/"]
     # Settings in config/environments/* take precedence over those specified here.

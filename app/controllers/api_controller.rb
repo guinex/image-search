@@ -1,4 +1,6 @@
 class ApiController < ApplicationController
+  skip_before_filter :authenticate_user!
+
   def get_similar_designs
     fingerprint = ImageSearch.where('design_id in (?)',params[:id]).pluck(:fingerprint)
     designs = ImageSearch.select('design_id,similar_designs').where(fingerprint: fingerprint)

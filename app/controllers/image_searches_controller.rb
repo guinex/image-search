@@ -68,16 +68,8 @@ class ImageSearchesController < ApplicationController
         filename = 'image_upload_data.csv'
         File.open(File.join('/tmp/', filename), 'w+') { |f| f.write file }
         ImageSearch.process_images
-        send_file('/tmp/failed_image_data.csv')
       elsif params[:design_id].present?
         @url,@similar_url = ImageSearch.search_image(params[:design_id])
-        # unless response == "606"
-        #   render json: {result: response}
-        # else
-        #   render json: {alert: "No Designs Found"}
-        # end
-      elsif params[:upload_images].present?
-        ImageSearch.automated_upload_new_images
       end
     end
   end

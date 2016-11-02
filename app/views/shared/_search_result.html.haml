@@ -1,0 +1,64 @@
+:css
+  table, th, td, tr{
+    border:1px solid black;
+  }
+
+-if @url.present?
+  #same_images{style:"float:left"}  
+    %table
+      %tr
+        %td
+          Designs
+        %td
+          Images
+      - @url.each do |key,value|
+        %tr
+          %td  
+            = link_to key, "http://www.mirraw.com/d/#{key}"
+          %td  
+            =image_tag value
+          -if @remove_catalog_int.present? && @remove_catalog_int == true
+            %td
+              = form_tag remove_catalog_url, :method => 'POST' do
+                = hidden_field_tag :design_id, @url.keys.first
+                = hidden_field_tag :geo, 'international'
+                = submit_tag("Remove International")            
+            -if @remove_catalog_domestic.present? && @remove_catalog_domestic == true
+              %td
+                = form_tag remove_catalog_url, :method => 'POST' do
+                  = hidden_field_tag :design_id, @url.keys.first
+                  = hidden_field_tag :geo, 'domestic'
+                  = submit_tag("Remove Domestic")            
+
+-if @similar_url.present?
+  #similar_images{style:"float:left"}  
+    %table
+      %tr
+        %td
+          Similar Designs
+        %td
+          Images
+      - @similar_url.each do |key,value|
+        %tr
+          %td  
+            = link_to key, "http://www.mirraw.com/d/#{key}"
+          %td  
+            =image_tag value
+          -if @restricted_access.present? && @restricted_access ==false   
+            %td
+              = form_tag remove_similar_path, :method => 'POST', :multipart => true do
+                = hidden_field_tag :id, @url.keys.first
+                = hidden_field_tag :design_id, key
+                = submit_tag :remove             
+          -if @remove_catalog_int.present? && @remove_catalog_int == true
+            %td
+              = form_tag remove_catalog_url, :method => 'POST' do
+                = hidden_field_tag :design_id, @similar_url.keys.first
+                = hidden_field_tag :geo, 'international'
+                = submit_tag("Remove International")            
+            -if @remove_catalog_domestic.present? && @remove_catalog_domestic == true
+              %td
+                = form_tag remove_catalog_url, :method => 'POST' do
+                  = hidden_field_tag :design_id, @similar_url.keys.first
+                  = hidden_field_tag :geo, 'domestic'
+                  = submit_tag("Remove Domestic")

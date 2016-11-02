@@ -1,0 +1,6 @@
+.search_bar
+  = form_tag remove_catalog_url, :method => 'POST' do
+    = label_tag(:id, "Search for:")
+    = text_field_tag(:id)
+    = submit_tag("Search")
+=render partial: 'shared/search_result'    

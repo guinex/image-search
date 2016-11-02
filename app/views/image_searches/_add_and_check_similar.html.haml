@@ -1,0 +1,10 @@
+-if @url.present?
+  #check_similar
+    = form_tag recheck_similar_path, :method => 'POST', :multipart => true do
+      = hidden_field_tag :id, @url.keys.first
+      = submit_tag :check_similar
+  #add_similar_design
+    = form_tag add_similar_path, :method => 'POST', :multipart => true do
+      = hidden_field_tag :id, @url.keys.first
+      = text_field_tag :design_id, ''
+      = submit_tag :add_similar

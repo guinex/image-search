@@ -15,6 +15,6 @@ Rails.application.routes.draw do
   post '/search/check_similar' => 'image_searches#re_check_similar', as: 'recheck_similar'
   get '/manage-catalogs/all' => 'manage_catalogs#remove_designs_from_catalog', as:"all_catalog"
   post '/manage-catalogs/all' => 'manage_catalogs#remove_designs_from_catalog', as:"remove_catalog"
-  
+  get 'api/international_catalog_designs' => 'api#international_catalog_designs'
   # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
 end

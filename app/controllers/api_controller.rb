@@ -11,4 +11,9 @@ class ApiController < ApplicationController
     end
     render :json => response
   end
+
+  def international_catalog_designs
+    design_ids = ManageCatalog.where(processing_state: 'waiting', geo: 'international').pluck(:design_id)
+    render :json => {id: design_ids}
+  end
 end

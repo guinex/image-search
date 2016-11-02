@@ -1,0 +1,1 @@
+json.array! @manage_catalogs, partial: 'manage_catalogs/manage_catalog', as: :manage_catalog

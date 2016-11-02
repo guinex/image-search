@@ -3,6 +3,12 @@
   -when 'Image Search'
     %h2 Image Search
     = link_to 'Open', image_search_app_path
--if can? :manage, :admin
-  = link_to 'Edit', edit_subapp_path(@subapp)
-  = link_to 'Back', subapps_path
+    -if can? :manage, :admin
+      = link_to 'Edit', edit_subapp_path(@subapp)
+      = link_to 'Back', subapps_path
+  -when 'Manage Catalog'
+    %h2 Manage Catalog
+    = link_to 'Open', all_catalog_path
+    -if can? :manage, :admin
+      = link_to 'Edit', edit_subapp_path(@subapp)
+      = link_to 'Back', subapps_path

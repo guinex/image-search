@@ -6,7 +6,7 @@ class ImageSearch < ApplicationRecord
   #serialize :design_ids, Array
   serialize :similar_designs, Array
   serialize :color_histogram, Hash
-
+  validates :design_id, uniqueness: true
   def self.process_images
     file_path = '/tmp/image_upload_data.csv'
     images = SmarterCSV.process(file_path)
@@ -154,7 +154,7 @@ class ImageSearch < ApplicationRecord
   ###################################################
 
   def self.insert_and_update_images(images_to_insert)
-    ImageSearch.import images_to_insert,validate:false
+    ImageSearch.import images_to_insert,validate:true
   end
 
   ##################################################

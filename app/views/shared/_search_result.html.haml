@@ -2,6 +2,14 @@
   table, th, td, tr{
     border:1px solid black;
   }
+  .remove{
+    height: 20px;
+    text-align: center;
+    background-color: #5F6766;
+    padding: 5px;
+    border-radius: 5px;
+    color: white;
+  }
 
 -if @url.present?
   #same_images{style:"float:left"}  
@@ -52,13 +60,50 @@
                 = submit_tag :remove             
           -if @remove_catalog_int.present? && @remove_catalog_int == true
             %td
-              = form_tag remove_catalog_url, :method => 'POST' do
-                = hidden_field_tag :design_id, @similar_url.keys.first
-                = hidden_field_tag :geo, 'international'
-                = submit_tag("Remove International")            
+              .remove.remove_int_catalog{id: "#{key}_int", data:{id:"#{key}"} }
+                remove(international)
             -if @remove_catalog_domestic.present? && @remove_catalog_domestic == true
               %td
-                = form_tag remove_catalog_url, :method => 'POST' do
-                  = hidden_field_tag :design_id, @similar_url.keys.first
-                  = hidden_field_tag :geo, 'domestic'
-                  = submit_tag("Remove Domestic")
+                .remove.remove_domestic_catalog{id: "#{key}_domestic", data:{id:"#{key}"} }
+                  remove(domestic)
+:javascript
+  $('.remove_int_catalog').click(function(){
+    var design_id = $(this).attr('data-id');
+    var geo = 'international';
+    var path  = window.location.pathname;
+    $.ajax({
+      url: path,
+      type: 'POST',
+      datatype: 'script',
+      data: {design_id: design_id, geo: geo},
+      success: function(data){
+        if (data['status'] == 'ok')
+          $('#'+design_id+'_int').text("Removed");
+        else if (data['status'] == 'invalid')
+          alert("Oops! Something went wrong.");          
+      },
+      error: function(xhr, status, error){
+        alert("Oops! Something went wrong.");
+      }
+    });  
+  });
+  $('.remove_domestic_catalog').click(function(){
+    var design_id = $(this).attr('data-id');
+    var geo = 'domestic';
+    var path  = window.location.pathname;
+    $.ajax({
+      url: path,
+      type: 'POST',
+      datatype: 'script',
+      data: {design_id: design_id, geo: geo},
+      success: function(data){
+        if (data['status'] == 'ok')
+          $('#'+design_id+'_domestic').text("Removed");
+        else if (data['status'] == 'invalid')
+          alert("Oops! Something went wrong.");          
+      },
+      error: function(xhr, status, error){
+        alert("Oops! Something went wrong.");
+      }
+    });  
+  });

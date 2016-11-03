@@ -16,4 +16,12 @@ class ApiController < ApplicationController
     design_ids = ManageCatalog.where(processing_state: 'waiting', geo: 'international').pluck(:design_id)
     render :json => {id: design_ids}
   end
+
+  def international_catalog_response
+    design_ids = params[:design_ids]
+    ManageCatalog.where(design_id: design_ids, geo: 'international').update_all(processing_state: 'complete')
+    ManageCatalog.where(geo: 'international', processing_state: 'waiting').update_all(processing_state: 'failed')
+    render :json => {status: 'ok'}
+  end
+
 end

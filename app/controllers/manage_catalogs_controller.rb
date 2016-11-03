@@ -65,16 +65,19 @@ class ManageCatalogsController < ApplicationController
     @restricted_access = true
     @remove_catalog_int = true
     @remove_catalog_domestic = false
-    if request.post?
+    if request.xhr?
       if params[:design_id].present?
         if params[:geo] == 'international'
           ManageCatalog.where(design_id: params[:design_id].to_s, geo:'international').first_or_create.update_column(:processing_state,'waiting')
         elsif params[:geo] == 'domestic'
           ManageCatalog.where(design_id: params[:design_id].to_s, geo:'domestic').first_or_create.update_column(:processing_state,'waiting')
         end
-      elsif params[:id].present?
-        @url,@similar_url = ImageSearch.search_image(params[:id])
+        render json: {status: 'ok'}
+      else 
+        render json: {status: 'invalid'}
       end
+    elsif request.post? && params[:id].present?
+        @url,@similar_url = ImageSearch.search_image(params[:id])
     end
   end
 

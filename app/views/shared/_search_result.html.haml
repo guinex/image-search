@@ -9,6 +9,7 @@
     padding: 5px;
     border-radius: 5px;
     color: white;
+    cursor:pointer;
   }
 
 -if @url.present?
@@ -27,16 +28,12 @@
             =image_tag value
           -if @remove_catalog_int.present? && @remove_catalog_int == true
             %td
-              = form_tag remove_catalog_url, :method => 'POST' do
-                = hidden_field_tag :design_id, @url.keys.first
-                = hidden_field_tag :geo, 'international'
-                = submit_tag("Remove International")            
+              .remove.remove_int_catalog{id: "#{key}_int", data:{id:"#{key}"} }
+                remove(international)
             -if @remove_catalog_domestic.present? && @remove_catalog_domestic == true
               %td
-                = form_tag remove_catalog_url, :method => 'POST' do
-                  = hidden_field_tag :design_id, @url.keys.first
-                  = hidden_field_tag :geo, 'domestic'
-                  = submit_tag("Remove Domestic")            
+                .remove.remove_domestic_catalog{id: "#{key}_domestic", data:{id:"#{key}"} }
+                  remove(domestic)
 
 -if @similar_url.present?
   #similar_images{style:"float:left"}  
@@ -52,7 +49,7 @@
             = link_to key, "http://www.mirraw.com/d/#{key}"
           %td  
             =image_tag value
-          -if @restricted_access.present? && @restricted_access ==false   
+          -unless @restricted_access.present? || @restricted_access ==false
             %td
               = form_tag remove_similar_path, :method => 'POST', :multipart => true do
                 = hidden_field_tag :id, @url.keys.first

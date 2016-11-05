@@ -1,10 +1,46 @@
 -if @url.present?
-  #check_similar
-    = form_tag recheck_similar_path, :method => 'POST', :multipart => true do
+  #check_similar   
+    = form_tag recheck_similar_path,id: 'CheckSimilarAgain', :method => 'POST', :multipart => true do
       = hidden_field_tag :id, @url.keys.first
       = submit_tag :check_similar
   #add_similar_design
-    = form_tag add_similar_path, :method => 'POST', :multipart => true do
+    = form_tag add_similar_path,id: 'AddDesignForm', :method => 'POST', :multipart => true do
       = hidden_field_tag :id, @url.keys.first
-      = text_field_tag :design_id, ''
+      = text_field_tag :similar_design_id, ''
       = submit_tag :add_similar
+:javascript
+
+  $("#AddDesignForm").submit(function(e) { 
+
+      var url = window.location.pathname+"/add_similar_design";
+      $.ajax({
+        type: "POST",
+        url: url,
+        data: $("#AddDesignForm").serialize(),
+        success: function(response)
+        {
+          if (response['status'] == 'ok')
+            window.location.reload();
+          else if (response['status'] == 'invalid')
+            alert("Oops! Something went wrong.");                   
+        }
+      });  
+      e.preventDefault();
+  }); 
+  $("#CheckSimilarAgain").submit(function(e) { 
+
+      var url = window.location.pathname+"/check_similar";
+      $.ajax({
+        type: "POST",
+        url: url,
+        data: $("#CheckSimilarAgain").serialize(),
+        success: function(response)
+        {
+          if (response['status'] == 'ok')
+            window.location.reload();
+          else if (response['status'] == 'invalid')
+            alert("Oops! Something went wrong.");                   
+        }
+      });  
+      e.preventDefault();
+  }); 

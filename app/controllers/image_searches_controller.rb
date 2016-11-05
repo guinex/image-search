@@ -69,21 +69,29 @@ class ImageSearchesController < ApplicationController
         File.open(File.join('/tmp/', filename), 'w+') { |f| f.write file }
         ImageSearch.process_images
       elsif params[:design_id].present?
-        @url,@similar_url = ImageSearch.search_image(params[:design_id])
+        redirect_to search_similar_path(params[:design_id])  
       end
     end
   end
 
+  def search_similar
+    @url,@similar_url = ImageSearch.search_image(params[:design_id])
+    render "image_searches/search_and_upload_image"
+  end
+
   def remove_similar_design
-    ImageSearch.remove_similar(params[:id],params[:design_id])
+    ImageSearch.remove_similar(params[:id],params[:similar_design_id])
+    render json: {status: 'ok'}
   end
 
   def add_similar_design
-    ImageSearch.add_similar(params[:id],params[:design_id])
+    ImageSearch.add_similar(params[:id],params[:similar_design_id])
+    render json: {status: 'ok'} 
   end
 
   def re_check_similar
     ImageSearch.find_similar_in_group(params[:id])
+    render json: {status: 'ok'}
   end
 
   private

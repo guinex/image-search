@@ -51,10 +51,9 @@
             =image_tag value
           -unless @restricted_access.present? || @restricted_access ==false
             %td
-              = form_tag remove_similar_path, :method => 'POST', :multipart => true do
-                = hidden_field_tag :id, @url.keys.first
-                = hidden_field_tag :design_id, key
-                = submit_tag :remove             
+              .remove.remove_similar{id: "#{key}_similar", data:{design_id:"#{key}",id:"#{@url.keys.first}"}}
+                remove similar
+          
           -if @remove_catalog_int.present? && @remove_catalog_int == true
             %td
               .remove.remove_int_catalog{id: "#{key}_int", data:{id:"#{key}"} }
@@ -64,6 +63,28 @@
                 .remove.remove_domestic_catalog{id: "#{key}_domestic", data:{id:"#{key}"} }
                   remove(domestic)
 :javascript
+
+  $('.remove_similar').click(function(){
+    var design_id = $(this).attr('data-design-id');
+    var id = $(this).attr('data-id');
+    var path  = window.location.pathname+'/remove_similar_design';
+    $.ajax({
+      url: path,
+      type: 'POST',
+      datatype: 'script',
+      data: {similar_design_id: design_id, id: id},
+      success: function(response){
+        if (response['status'] == 'ok')
+          window.location.reload();
+        else if (response['status'] == 'invalid')
+          alert("Oops! Something went wrong.");          
+      },
+      error: function(xhr, status, error){
+        alert("Oops! Something went wrong.");
+      }
+    });  
+  });
+
   $('.remove_int_catalog').click(function(){
     var design_id = $(this).attr('data-id');
     var geo = 'international';
@@ -73,10 +94,10 @@
       type: 'POST',
       datatype: 'script',
       data: {design_id: design_id, geo: geo},
-      success: function(data){
-        if (data['status'] == 'ok')
+      success: function(response){
+        if (response['status'] == 'ok')
           $('#'+design_id+'_int').text("Removed");
-        else if (data['status'] == 'invalid')
+        else if (response['status'] == 'invalid')
           alert("Oops! Something went wrong.");          
       },
       error: function(xhr, status, error){
@@ -93,10 +114,10 @@
       type: 'POST',
       datatype: 'script',
       data: {design_id: design_id, geo: geo},
-      success: function(data){
-        if (data['status'] == 'ok')
+      success: function(response){
+        if (response['status'] == 'ok')
           $('#'+design_id+'_domestic').text("Removed");
-        else if (data['status'] == 'invalid')
+        else if (response['status'] == 'invalid')
           alert("Oops! Something went wrong.");          
       },
       error: function(xhr, status, error){

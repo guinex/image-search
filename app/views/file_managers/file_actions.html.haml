@@ -1,0 +1,7 @@
+-if can? :manage, :admin
+  #file_split
+    = form_tag split_file_url, :method => 'POST', :multipart => true do
+      = label_tag :csv_file, 'CSV File'
+      = text_field_tag :split_into
+      = file_field_tag :csv_file, :accept => 'text/csv', :required => true
+      = submit_tag :split

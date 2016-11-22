@@ -75,7 +75,7 @@ class ImageSearchesController < ApplicationController
   end
 
   def search_similar
-    @url,@similar_url = ImageSearch.search_image(params[:design_id])
+    @url,@similar_url,@related_url = ImageSearch.search_image(params[:design_id])
     render "image_searches/search_and_upload_image"
   end
 
@@ -92,6 +92,24 @@ class ImageSearchesController < ApplicationController
   def re_check_similar
     ImageSearch.find_similar_in_group(params[:id])
     render json: {status: 'ok'}
+  end
+
+  def get_upload_data
+    ImageSearch.get_data
+    render json: {status: 'ok'}
+  end
+
+  def find_bestsellers
+    if (params[:csv_file]).present?
+      file = params[:csv_file].read.force_encoding("ASCII-8BIT").encode('UTF-8', undef: :replace, replace: '')
+      filename = 'bestsellers.csv'
+      File.open(File.join('/tmp/', filename), 'w+') { |f| f.write file }
+      ImageSearch.bestsellers(params[:csv_file].original_filename.split('.')[0])
+      render json: {status: 'ok'}
+    else
+      render json: {status: 'not processed'}        
+    end
+
   end
 
   private

@@ -8,26 +8,13 @@ class ImageSearch < ApplicationRecord
   serialize :similar_designs, Array
   serialize :color_histogram, Hash
   validates :design_id, uniqueness: true
-  METHODS_ATTR =[:fingerprint, :exact, :similar,:object]
+  METHODS_ATTR =[:fingerprint, :exact, :similar]
   
   METHODS_ATTR.each do |attribute|
     method_name = "#{attribute}_of_design".to_sym
     self.send :define_singleton_method, method_name do |* args|
       self.send(attribute,*args)
     end
-  end
-
-  def self.object(* args)
-    key_value = {}
-    query = []
-    args.first.zip(args.last).each do |ar| 
-      key_value[ar[0].to_sym] = ar[1]
-    end
-    key_value.each do |condition, value|
-      query << "#{condition} in ('#{value}')"
-    end
-    query = query.join(' and ')
-    ImageSearch.where("#{query}")
   end
 
   def self.similar(fingerprint)
@@ -58,7 +45,7 @@ class ImageSearch < ApplicationRecord
   end
 
   def self.add_similar(design_id,id)
-    images = object_of_design(['fingerprint'],fingerprint_of_design(design_id))
+    images = ImageSearch.where(fingerprint:fingerprint_of_design(design_id))
     similar_design_array = exact_of_design(fingerprint_of_design(id))
     similar_design_array.flatten!
     similar_designs = images.pluck(:similar_designs)
@@ -102,6 +89,7 @@ class ImageSearch < ApplicationRecord
   def self.make_fingerprint(images)
     images_to_insert = []
     failed_batch = []
+
     images.each_with_index do |img,index|
       begin
         if (file_path = check_if_url_exists(img[:id], img[:photo_file_name])).present?
@@ -167,7 +155,7 @@ class ImageSearch < ApplicationRecord
         end
       end
       if similar_images.present?
-        image_search = object_of_design(['id'],[id]).first
+        image_search = ImageSearch.where(id: id).first
         equal_images = exact_of_design(fingerprint_of_design(image_search.fingerprint))
         equal_images.delete_if{|eq| eq == image_search.design_id}
         similar_designs =image_search.similar_designs
@@ -205,9 +193,9 @@ class ImageSearch < ApplicationRecord
     last_separator_at = file.length + 1  if extension == '.'
     full_path = 'http://s3-ap-southeast-1.amazonaws.com/mirraw/images/'+"#{id}"+"/"+"#{file_name[0..(last_separator_at-1)]}"
     unless thumb.present?
-      file_path = file_path+'_original'+"#{extension}"+'?34'
+      file_path = full_path +'_small'+"#{extension}"+'?34'
     else
-      file_path = full_path+'_thumb'+"#{extension}"+'?35'
+      file_path = full_path +'_thumb'+"#{extension}"+'?35'
     end
     url = URI.parse(file_path)
     uri = URI(url)
@@ -252,7 +240,7 @@ class ImageSearch < ApplicationRecord
       image_search.each do |image|
         phashion_object = Marshal::load(image.phash_obj)
         path = phashion_object.filename.split('_')
-        ext_path = path.last.gsub(/original.|zoom./,'thumb.')
+        ext_path = path.last.gsub(/original.|zoom. |small./,'thumb.')
         path.delete(path.last)
         path.push(* ext_path)
         path = path.join('_')
@@ -263,7 +251,7 @@ class ImageSearch < ApplicationRecord
   end
 
   def self.get_all_similar(fingerprint)
-    image_search = object_of_design(['fingerprint'],[fingerprint])
+    image_search = ImageSearch.where(fingerprint: fingerprint)
     similar_design_array = []
     image_search.each_with_index do |image,index|
       img_phash_obj = Marshal::load(image.phash_obj)

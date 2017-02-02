@@ -1,0 +1,127 @@
+:css
+  table, th, td, tr{
+    border:1px solid black;
+  }
+  .remove{
+    height: 20px;
+    text-align: center;
+    background-color: #5F6766;
+    padding: 5px;
+    border-radius: 5px;
+    color: white;
+    cursor:pointer;
+  }
+
+-if @url.present?
+  #same_images{style:"float:left"}  
+    %table
+      %tr
+        %td
+          Designs
+        %td
+          Images
+      - @url.each do |key,value|
+        %tr
+          %td  
+            = link_to key, "http://www.mirraw.com/d/#{key}", target: '_blank'
+          %td  
+            =image_tag value
+          -if @remove_catalog_int.present? && @remove_catalog_int == true
+            %td
+              .remove.remove_int_catalog{id: "#{key}_int", data:{id:"#{key}"} }
+                remove(international)
+            -if @remove_catalog_domestic.present? && @remove_catalog_domestic == true
+              %td
+                .remove.remove_domestic_catalog{id: "#{key}_domestic", data:{id:"#{key}"} }
+                  remove(domestic)
+
+-if @similar_url.present?
+  #similar_images{style:"float:left"}  
+    %table
+      %tr
+        %td
+          Similar Designs
+        %td
+          Images
+      - @similar_url.each do |key,value|
+        %tr
+          %td  
+            = link_to key, "http://www.mirraw.com/d/#{key}", target: '_blank'
+          %td  
+            =image_tag value
+          -unless @restricted_access.present? || @restricted_access ==false
+            %td
+              .remove.remove_similar{id: "#{key}_similar", data:{design_id:"#{key}",id:"#{@url.keys.first}"}}
+                remove similar
+          
+          -if @remove_catalog_int.present? && @remove_catalog_int == true
+            %td
+              .remove.remove_int_catalog{id: "#{key}_int", data:{id:"#{key}"} }
+                remove(international)
+            -if @remove_catalog_domestic.present? && @remove_catalog_domestic == true
+              %td
+                .remove.remove_domestic_catalog{id: "#{key}_domestic", data:{id:"#{key}"} }
+                  remove(domestic)
+:javascript
+
+  $('.remove_similar').click(function(){
+    var design_id = $(this).attr('data-design-id');
+    var id = $(this).attr('data-id');
+    var path  = window.location.pathname+'/remove_similar_design';
+    $.ajax({
+      url: path,
+      type: 'POST',
+      datatype: 'script',
+      data: {similar_design_id: design_id, id: id},
+      success: function(response){
+        if (response['status'] == 'ok')
+          window.location.reload();
+        else if (response['status'] == 'invalid')
+          alert("Oops! Something went wrong.");          
+      },
+      error: function(xhr, status, error){
+        alert("Oops! Something went wrong.");
+      }
+    });  
+  });
+
+  $('.remove_int_catalog').click(function(){
+    var design_id = $(this).attr('data-id');
+    var geo = 'international';
+    var path  = window.location.pathname;
+    $.ajax({
+      url: path,
+      type: 'POST',
+      datatype: 'script',
+      data: {design_id: design_id, geo: geo},
+      success: function(response){
+        if (response['status'] == 'ok')
+          $('#'+design_id+'_int').text("Removed");
+        else if (response['status'] == 'invalid')
+          alert("Oops! Something went wrong.");          
+      },
+      error: function(xhr, status, error){
+        alert("Oops! Something went wrong.");
+      }
+    });  
+  });
+  $('.remove_domestic_catalog').click(function(){
+    var design_id = $(this).attr('data-id');
+    var geo = 'domestic';
+    var path  = window.location.pathname;
+    $.ajax({
+      url: path,
+      type: 'POST',
+      datatype: 'script',
+      data: {design_id: design_id, geo: geo},
+      success: function(response){
+        if (response['status'] == 'ok')
+          $('#'+design_id+'_domestic').text("Removed");
+        else if (response['status'] == 'invalid')
+          alert("Oops! Something went wrong.");          
+      },
+      error: function(xhr, status, error){
+        alert("Oops! Something went wrong.");
+      }
+    });  
+  });

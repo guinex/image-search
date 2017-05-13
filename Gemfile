@@ -27,6 +27,8 @@ gem 'better_errors'
 gem 'smartcropper'
 gem 'miro'
 gem 'fog'
+gem 'mongoid'
+
 #image processing
 gem 'phashion'
 # for reading and creating data

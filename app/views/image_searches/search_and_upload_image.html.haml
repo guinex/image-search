@@ -3,11 +3,17 @@
     = label_tag(:design_id, "Search for:")
     = text_field_tag(:design_id)
     = submit_tag("Search")
--if can? :manage, :admin  
+-if can? :manage, :admin
   #mirraw_image_upload
     = form_tag search_and_upload_panel_url, :method => 'POST', :multipart => true do
       = label_tag :csv_file, 'CSV File'
       = file_field_tag :csv_file, :accept => 'text/csv', :required => true
       = submit_tag :update
-=render partial: 'add_and_check_similar'      
+-if can? :manage, :admin
+  #mirraw_bestsellers
+    = form_tag find_bestsellers_panel_url, :method => 'POST', :multipart => true do
+      = label_tag :csv_file, 'CSV File'
+      = file_field_tag :csv_file, :accept => 'text/csv', :required => true
+      = submit_tag :find_bestseller
+=render partial: 'add_and_check_similar'
 =render partial: 'shared/search_result'

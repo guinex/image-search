@@ -51,6 +51,7 @@ GEM
     bootstrap-sass (3.3.7)
       autoprefixer-rails (>= 5.2.1)
       sass (>= 3.3.4)
+    bson (4.2.1)
     builder (3.2.2)
     byebug (9.0.6)
     cancancan (1.15.0)
@@ -132,6 +133,11 @@ GEM
       cocaine
       color
       oily_png
+    mongo (2.4.1)
+      bson (>= 4.2.1, < 5.0.0)
+    mongoid (6.0.3)
+      activemodel (~> 5.0)
+      mongo (~> 2.3)
     multi_json (1.12.1)
     multi_xml (0.5.5)
     netrc (0.11.0)
@@ -250,6 +256,7 @@ DEPENDENCIES
   jquery-rails
   listen (~> 3.0.5)
   miro
+  mongoid
   nokogiri
   pg (~> 0.18)
   phashion

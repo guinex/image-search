@@ -17,14 +17,37 @@ class ColorCluster < ApplicationRecord
 
   def self.assign_cluster(id)
     if (image_search = ImageSearch.find_by_id(id)).present?
-      argument_hash = {cluster: {average: image_search.color_histogram[:avg],color_hash: image_search.color_histogram[:color_hash], key_hash: image_search.color_histogram[:color_hash].keys.join('').hash}, design_id: image_search.design_id, category_id: image_search.category_id}
-      if (cluster = ColorCluster.where(key_hash: argument_hash[:cluster][:key_hash]).first).present?
-        image_search.update_column(:cluster_id,cluster.id)
-      else
-        color_cluster_id = pin_cluster(argument_hash)
-        image_search.update_column(:cluster_id,color_cluster_id)
+      argument_hash = {cluster: {average: image_search.color_histogram[:avg],color_graph: image_search.color_histogram[:color_graph], color_hash: image_search.color_histogram[:color_hash], key_hash: image_search.color_histogram[:color_hash].keys.join('').hash}, design_id: image_search.design_id, category_id: image_search.category_id}
+      create_cluster(argument_hash)
+
+    end
+  end
+
+  def find_distance(array1, array2)
+    distance =[]
+    array1.each_with_index do |arr1, index|
+      array2.each do |arr2|
+        color1_arry = ColorCluster.split_in_hex(arr1)
+        color2_arry = ColorCluster.split_in_hex(arr2)
+        coordinates = {}
+        color1_arry.each_with_index do |rgb, i|
+          coordinates[:x] = (rgb.hex - color2_arry[i].hex)**2 if i == 0
+          coordinates[:y] = (rgb.hex - color2_arry[i].hex)**2 if i == 1
+          coordinates[:z] = (rgb.hex - color2_arry[i].hex)**2 if i == 2
+        end
+        distance << Math.sqrt(coordinates.values.inject(:+))
       end
     end
+    distance
+  end
+
+  def self.split_in_hex(color)
+    color.gsub('#','').split('').each_slice(2).map(&:join)
+  end
+
+  def create_cluster(args)
+    new_cluster = ColorCluster.create(average: args[:cluster][:average], color_hash_percent: args[:cluster][:color_hash], key_hash: args[:cluster][:key_hash], category_id: args[:category_id])
+    return new_cluster.id
   end
 
   def self.cluster(* args)
@@ -89,7 +112,7 @@ class ColorCluster < ApplicationRecord
   # will be calculated from this cluster                                     #
   ############################################################################
   def self.add_pin_to_cluster(args)
-    clusters = ColorCluster.where('(average between ? and ?) and (category_id = ?)',args.first[:cluster][:average].to_i-100, args.first[:cluster][:average].to_i+100,args.first[:category_id]).to_a
+    clusters = ColorCluster.where('(average between ? and ?) and (category_id = ?)',args.first[:cluster][:average].to_i-10000, args.first[:cluster][:average].to_i+10000,args.first[:category_id]).to_a
     if clusters.present?
       cluster_array = clusters.collect{|c| [c.id,c.average]}
       cluster_array.map!{|i| [i[0],(i[1].to_f - args.first[:cluster][:average].to_f).abs]}

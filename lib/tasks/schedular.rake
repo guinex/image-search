@@ -1,17 +1,16 @@
 desc "This task is called by the Heroku schedular to create similar images"
 task :process_similar_images => :environment do
-  images = ImageSearch.select('id, design_id, color_histogram').where('similar_designs is null')
-  if images.present?
-    images.update_all(processed_for_similar_at: Time.zone.now())
-    ImageSearch.automated_update_similar_designs(images)
-  end
-end
-
-desc "This task is called by the Heroku schedular to create clusters and pins"
-task :create_clusters => :environment do
-  ids = ImageSearch.where('design_id is not null and cluster_id is null').limit(10000).pluck(:id)
-  if ids.present?
-    ImageSearch.add_to_cluster_by_task(ids)
+  current_cluster = SystemConstant.get('CURRENT_IMAGE_PROCESSING_BATCH')
+  ColorCluster.where('id > ?', current_cluster).find_in_batches(batch_size: 10).each do |batch|
+    batch.each do |cluster|
+      ColorCluster.find_each(batch_size: 500) do |all_cluster|
+        if (relation = HelperMethod.calculate_relation(all_cluster.color_scaled, cluster.color_scaled) || HelperMethod.calculate_relation(all_cluster.gray_scaled, cluster.gray_scaled))
+          ColorCluster.generate_cluster_relation(cluster, all_cluster, relation)
+        else
+          next
+        end
+      end
+    end
   end
 end
 
@@ -58,45 +57,5 @@ task :delete_where_image_changed => :environment do
     end
   end
 end
-# 100.times do
-#   images = ImageSearch.select('id, design_id, color_histogram').where('design_id is not null').order('random()').limit(100000)
-#   if images.present?
-#     images.update_all(processed_for_similar_at: Time.zone.now())
-#     ImageSearch.automated_update_similar_designs(images)
-#   end
-# end
 
 
-desc "This task upload_file_on_s3"
-task :upload_file_on_s3 => :environment do
-  # designs = []
-  # ImageSearch.where.not(similar_designs: nil).find_in_batches(batch_size: 10000) do |imgs|
-  #   hash = {}
-  #   imgs.each do |i|
-  #     similar_designs = []
-  #     i.similar_designs.each{|id| similar_designs << id.to_i}
-  #     hash[i.design_id] = similar_designs.to_a.join(',')
-  #     designs << hash
-  #   end
-  # end
-  # File.open("tmp/similar_designs.json","w") do |f|
-  #   f.write(designs.to_json)
-  # end
-  #   connection = Fog::Storage.new({
-  #     :provider                 => 'AWS',
-  #     :aws_access_key_id        => "AKIAIKTPLVJVYHE7XGYA",
-  #     :aws_secret_access_key    => "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",
-  #     :region => "ap-southeast-1"
-  #   })
-
-  #   # First, a place to contain the glorious details
-  #   directory = connection.directories.new(
-  #     :key    => "mirraw-test"
-  #   )
-
-  #   directory.files.create(
-  #     :key    => "ImageSearch/similar_designs.csv",
-  #     :body   => file,
-  #     :public => true
-  #   )
-end

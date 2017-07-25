@@ -77,7 +77,7 @@ class ManageCatalogsController < ApplicationController
         render json: {status: 'invalid'}
       end
     elsif request.post? && params[:id].present?
-        @url,@similar_url = ImageSearch.search_image(params[:id])
+      @url,@related_url = ImageSearch.search_image(params[:id])
     end
   end
 

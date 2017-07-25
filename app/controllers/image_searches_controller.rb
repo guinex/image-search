@@ -1,6 +1,5 @@
 class ImageSearchesController < ApplicationController
   before_action :set_image_search, only: [:show, :edit, :update, :destroy]
-
   # GET /image_searches
   # GET /image_searches.json
   def index
@@ -75,7 +74,7 @@ class ImageSearchesController < ApplicationController
   end
 
   def search_similar
-    @url,@similar_url,@related_url = ImageSearch.search_image(params[:design_id])
+    @url,@related_url = ImageSearch.search_image(params[:design_id])
     render "image_searches/search_and_upload_image"
   end
 
@@ -107,10 +106,11 @@ class ImageSearchesController < ApplicationController
       ImageSearch.bestsellers(params[:csv_file].original_filename.split('.')[0])
       render json: {status: 'ok'}
     else
-      render json: {status: 'not processed'}        
+      render json: {status: 'not processed'}
     end
-
   end
+
+
 
   private
     # Use callbacks to share common setup or constraints between actions.

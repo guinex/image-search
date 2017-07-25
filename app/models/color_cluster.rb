@@ -2,122 +2,26 @@ class ColorCluster < ApplicationRecord
   has_many :image_search
   has_many :cluster_relation
   serialize :color_hash_percent, Hash
-  after_create :build_cluster_relation
-  CLUSTER_TYPES_AND_PINS =[:dimension, :vector, :adjacent, :new, :pin]
-  PIN_LINK_THRESHOLD = 90
-  CLUSTER_TYPES_AND_PINS.each do |attribute|
-    method_name = ["create_#{attribute}_cluster".to_sym,"#{attribute}_cluster".to_sym] 
-    method_name.each do |method|
-      self.send :define_singleton_method, method do |* args|
-        args << {type: attribute.to_s}
-        self.send('cluster',*args)
-      end
-    end
+  serialize :gray_scaled, Array
+  serialize :color_scaled, Array
+
+  def self.assign_cluster(image_search_id)
+    imagesearch = ImageSearch.find_by_id(image_search_id)
+    cluster = ColorCluster.create(gray_scaled: imagesearch.color_histogram[:tiles_matrix_gray_scaled], color_scaled: imagesearch.color_histogram[:tiles_matrix_colored], color_hash_percent: imagesearch.color_histogram[:color_hash], category_id: imagesearch.category_id)
+    imagesearch.update_column(:cluster_id,cluster.id)
   end
 
-  def self.assign_cluster(id)
-    if (image_search = ImageSearch.find_by_id(id)).present?
-      argument_hash = {cluster: {average: image_search.color_histogram[:avg],color_hash: image_search.color_histogram[:color_hash], key_hash: image_search.color_histogram[:color_hash].keys.join('').hash}, design_id: image_search.design_id, category_id: image_search.category_id}
-      if (cluster = ColorCluster.where(key_hash: argument_hash[:cluster][:key_hash]).first).present?
-        image_search.update_column(:cluster_id,cluster.id)
-      else
-        color_cluster_id = pin_cluster(argument_hash)
-        image_search.update_column(:cluster_id,color_cluster_id)
-      end
-    end
-  end
-
-  def self.cluster(* args)
-    case args.last[:type]
-    when 'new'
-      if (args = args.first).present?
-        new_cluster = ColorCluster.create(average: args.first[:cluster][:average], color_hash_percent: args.first[:cluster][:color_hash], key_hash: args.first[:cluster][:key_hash], category_id: args.first[:category_id])
-        return new_cluster.id
-      end
-    when 'pin'
-      if args.first[:cluster].present?
-        ColorCluster.add_pin_to_cluster(args)
-      end
-    when 'dimension'
-      if args.first[:cluster_average].present? && args.first[:category_1] ==  args.first[:category_2]
-        if (args.first[:cluster_average][:average1] - args.first[:cluster_average][:average2]).abs <= 500
-          if (args.first[:color_hash_percent][:color_hash1].keys & args.first[:color_hash_percent][:color_hash2].keys).length > 5
-            color_grade = compare_color_percent(args.first[:color_hash_percent][:color_hash1],args.first[:color_hash_percent][:color_hash2])
-            return (100 + color_grade)
-          end
-        end
-      end
-      return 0
-    when 'vector'
-      if args.first[:cluster_average].present? && args.first[:color_hash_percent].present? && args.first[:category_1] !=  args.first[:category_2]
-        if (args.first[:cluster_average][:average1] - args.first[:cluster_average][:average2]).abs <= 500
-          if (args.first[:color_hash_percent][:color_hash1].keys & args.first[:color_hash_percent][:color_hash2].keys).length > 5
-            color_grade = compare_color_percent(args.first[:color_hash_percent][:color_hash1],args.first[:color_hash_percent][:color_hash2])
-            return (200 + color_grade)
-          end
-        end
-      end
-      return 0
-    when 'adjacent'
-      if args.first[:cluster_average].present? && args.first[:color_hash_percent].present?
-        if (args.first[:color_hash_percent][:color_hash1].keys & args.first[:color_hash_percent][:color_hash2].keys).length > 6
-          color_grade = compare_color_percent(args.first[:color_hash_percent][:color_hash1],args.first[:color_hash_percent][:color_hash2])
-          return (100 + color_grade)
-        end
-      end
-      return 0
-    else
-      puts "something went wrong!!!"
-    end
-  end
-
-  def build_cluster_relation
-    if (clusters = ColorCluster.where('(average between ? and ?) or (key_hash = ?)',self.average.to_i-750, self.average.to_i+750, self.key_hash)).present?
-      if (clusters = clusters.reject{|cls| cls.id == self.id}).present?
-        cluster_array = clusters.collect{|c| [c.id,c.average]}
-        cluster_array.map!{|i| [i[0],(i[1].to_f - self.average.to_f).abs]}
-        closest_id = cluster_array.sort_by!{|closest_cluster| closest_cluster[1]}.first[0]
-        nearest_cluster = ColorCluster.where(id: closest_id).first #change this cluster already loaded
-        ColorCluster.generate_cluster_relation(self,nearest_cluster)
-      end
-    end
-  end
   private
 
   # ##########################################################################
   # generate new measures from cluster to this design all the next distance  #
   # will be calculated from this cluster                                     #
   ############################################################################
-  def self.add_pin_to_cluster(args)
-    clusters = ColorCluster.where('(average between ? and ?) and (category_id = ?)',args.first[:cluster][:average].to_i-100, args.first[:cluster][:average].to_i+100,args.first[:category_id]).to_a
-    if clusters.present?
-      cluster_array = clusters.collect{|c| [c.id,c.average]}
-      cluster_array.map!{|i| [i[0],(i[1].to_f - args.first[:cluster][:average].to_f).abs]}
-      closest = cluster_array.sort_by{|closest_cluster| closest_cluster[1]}.first[0]
-      nearest_cluster = ColorCluster.where(id: closest).first #change this cluster already loaded
-      g_score = compare_color_percent(args.first[:cluster][:color_hash], nearest_cluster.color_hash_percent)
-      if g_score < PIN_LINK_THRESHOLD
-        create_new_cluster(args)
-      else
-        nearest_cluster.id
-      end
-    else
-      create_new_cluster(args)
-    end 
-  end
 
-  def self.generate_cluster_relation(cluster, connected_cluster)
-    cluster_args ={cluster_average: {average1: cluster.average, average2: connected_cluster.average},
-    color_hash_percent: {color_hash1: cluster.color_hash_percent, color_hash2: connected_cluster.color_hash_percent}, category_1: connected_cluster.category_id, category_2: cluster.category_id}
-    relation = Hash.new
-    relation[:dimension] = ColorCluster.dimension_cluster(cluster_args)
-    relation[:vector] = ColorCluster.vector_cluster(cluster_args)
-    relation[:adjacent] = ColorCluster.adjacent_cluster(cluster_args)
-    relation_type = relation.max_by{|k,v| v}.first.to_s
-    if (grade = relation.values.inject(:+)) > 0
-      z_distance = get_zdistance(cluster.average, connected_cluster.average, grade).round(2)
-      ClusterRelation.generate(cluster.id, connected_cluster.id, relation_type, grade, z_distance)
-    end
+  def self.generate_cluster_relation(cluster, related_cluster, type)
+    grade = ColorCluster.compare_color_percent(cluster.color_hash_percent, related_cluster.color_hash_percent)
+    distance = cluster.category_id == related_cluster.category_id ? 0 : 1
+    ClusterRelation.generate(cluster.id, related_cluster.id, type, grade, distance)
   end
 
   def self.compare_color_percent(color_hash1,color_hash2)
@@ -143,12 +47,9 @@ class ColorCluster < ApplicationRecord
         grade << 2
       else (color_hash1[hex] - color_hash2[hex]).abs * 100 < 100
         grade << 1
-      end  
+      end
     end
     grade.inject(:+)
   end
 
-  def self.get_zdistance(avg1, avg2, grade)
-    (avg1.to_f - avg2.to_f).abs/ grade.to_f
-  end
 end

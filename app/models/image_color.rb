@@ -1,0 +1,3 @@
+class ImageColor < ApplicationRecord
+
+end

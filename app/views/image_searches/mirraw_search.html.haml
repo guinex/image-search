@@ -1,0 +1,4 @@
+= form_tag({controller: "image_searches", action: "search_and_upload_image"}, method: "post") do
+  = label_tag(:design, "Search for:")
+  = text_field_tag(:design)
+  = submit_tag("Search")

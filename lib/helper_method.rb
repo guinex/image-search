@@ -7,16 +7,20 @@ module HelperMethod
 ###################
   RELATION = {
               '1' => {
-                vertical_all: [1,4,7,10].freeze,
-                vertical_no_head: [4,7,10].freeze,
-                vertical_no_bottom: [1,4,7].freeze
+                alike: [1,4,7,10].freeze,
+                bottom_alike: [4,7,10].freeze,
+                top_alike: [1,4,7].freeze
               }.freeze,
               '2' =>{
-                left_side: [3,4,6,7,9,10].freeze,
-                right_side: [5,4,8,7,11,10].freeze
+                left_alike: [3,4,6,7,9,10].freeze,
+                right_alike: [5,4,8,7,11,10].freeze
               }.freeze,
-              '3' => [4,6,7,8,9,10,11].freeze,
-              '4' => [0,2,9,11].freeze
+              '3' =>{
+                base_alike: [4,6,7,8,9,10,11].freeze
+                },
+              '4' => {
+                background_alike: [0,2,9,11].freeze
+              }
             }.freeze
   def self.split_file(file_path, into)
     file = '/tmp/original_big_file.csv'
@@ -39,7 +43,7 @@ module HelperMethod
     (Math.sqrt(d_hash.values.collect{|rgb| rgb*rgb}.inject(:+)) / average)
   end
 
-  def calculate_relation(matrix1, matrix2)
+  def self.calculate_relation(matrix1, matrix2)
     result_set = []
     matrix1.each_with_index do |element, index|
       result_set << index if (element - matrix2[index]).abs < 10000
@@ -53,7 +57,7 @@ module HelperMethod
   #   get_relation(min_indices,1)
   # end
 
-  def get_relation(metric, index)
+  def self.get_relation(metric, index)
     if RELATION[index.to_s].is_a?(Hash)
       RELATION[index.to_s].each do |key, value|
         if calculate_array(value, metric)
@@ -65,13 +69,14 @@ module HelperMethod
       get_relation(metric, index+1)
     elsif RELATION[index.to_s].is_a?(Array) && calculate_array(RELATION[index.to_s], metric)
         return index
-    else
+    elsif RELATION[index.to_s].present?
       get_relation(metric, index+1)
     end
-    return false
+    puts '__________________________relation_rejected____________________________'
+    return metric.size > 5 ? metric.size : false
   end
 
-  def calculate_array(block, metric)
+  def self.calculate_array(block, metric)
     (block == metric)
   end
 end

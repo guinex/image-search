@@ -94,8 +94,12 @@ class ImageSearchesController < ApplicationController
   end
 
   def get_upload_data
-    ImageSearch.get_data
-    render json: {status: 'ok'}
+    if params[:csv] =='true'
+       send_data ImageSearch.get_data(params[:csv]), filename: "tmp/duplicate_designs_{Date.today()}.csv"
+    else
+      ImageSearch.get_data(params[:csv])
+      render json: {status: 'ok'}
+    end
   end
 
   def find_bestsellers

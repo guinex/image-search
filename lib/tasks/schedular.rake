@@ -1,16 +1,52 @@
 desc "This task is called by the Heroku schedular to create similar images"
 task :process_similar_images => :environment do
-  current_cluster = SystemConstant.get('CURRENT_IMAGE_PROCESSING_BATCH')
-  ColorCluster.where('id > ?', current_cluster).find_in_batches(batch_size: 10).each do |batch|
+  current_cluster = SystemConstant.get('CURRENT_IMAGE_PROCESSING_BATCH').to_i
+  ColorCluster.where('id > ?', current_cluster).find_in_batches(batch_size: 5).each do |batch|
+    puts batch.size
     batch.each do |cluster|
-      ColorCluster.find_each(batch_size: 500) do |all_cluster|
-        if (relation = HelperMethod.calculate_relation(all_cluster.color_scaled, cluster.color_scaled) || HelperMethod.calculate_relation(all_cluster.gray_scaled, cluster.gray_scaled))
-          ColorCluster.generate_cluster_relation(cluster, all_cluster, relation)
+      puts cluster.id
+      ColorCluster.where('id <> ?', cluster.id ).find_each(batch_size: 50000) do |all_cluster|
+        puts "---------#{all_cluster.id}"
+        if (relation = HelperMethod.calculate_relation(all_cluster.color_scaled, cluster.color_scaled))
+          distance= nil
+          if relation.is_a?(Integer)
+            distance = relation
+            relation = :least_alike
+          end
+          if distance.present?
+            ColorCluster.generate_cluster_relation(cluster, all_cluster, relation, distance)
+          else
+            ColorCluster.generate_cluster_relation(cluster, all_cluster, relation)
+          end
+          puts '________________success___________________'
+        elsif (relation = HelperMethod.calculate_relation(all_cluster.gray_scaled, cluster.gray_scaled))
+          distance= nil
+          if relation.is_a?(Integer)
+            distance = relation
+            relation = :least_alike
+          end
+          if distance.present?
+            ColorCluster.generate_cluster_relation(cluster, all_cluster, relation, distance)
+          else
+            ColorCluster.generate_cluster_relation(cluster, all_cluster, relation)
+          end
+          puts '________________success___________________'
         else
           next
+          puts '_______________could not find_____________________'
         end
       end
+      current_cluster +=1
+      SystemConstant.where(name: 'CURRENT_IMAGE_PROCESSING_BATCH').update_all(value: current_cluster)
     end
+  end
+end
+
+
+desc "This task is called by the Heroku schedular to create similar images"
+task :add_to_cluster => :environment do
+  ImageSearch.where('cluster_id is null').find_each(batch_size: 100) do |imagesearch|
+    imagesearch.add_to_cluster
   end
 end
 

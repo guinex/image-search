@@ -45,20 +45,18 @@
           Images
       - @related_url.each do |key,hash|
         %tr
-          key.to_s
-        %tr
           %td
-            = link_to hash.keys.first, "http://www.mirraw.com/d/#{hash.keys.first}", target: '_blank'
+            = link_to key, "http://www.mirraw.com/d/#{key}", target: '_blank'
           %td
-            =image_tag hash.values.first
+            =image_tag hash
 
           -if @remove_catalog_int.present? && @remove_catalog_int == true
             %td
-              .remove.remove_int_catalog{id: "#{hash.keys.first}_int", data:{id:"#{hash.keys.first}"} }
+              .remove.remove_int_catalog{id: "#{key}_int", data:{id:"#{key}"} }
                 remove(international)
             -if @remove_catalog_domestic.present? && @remove_catalog_domestic == true
               %td
-                .remove.remove_domestic_catalog{id: "#{hash.keys.first}_domestic", data:{id:"#{hash.keys.first}"} }
+                .remove.remove_domestic_catalog{id: "#{key}_domestic", data:{id:"#{key}"} }
                   remove(domestic)
 
 

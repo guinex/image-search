@@ -9,35 +9,35 @@ class ImageSearch < ApplicationRecord
   serialize :color_histogram, Hash
   validates :image_id, uniqueness: true
   belongs_to :color_cluster
-  after_create :add_to_cluster, :create_color
+  #after_create :add_to_cluster, :create_color
 
-  def self.similar_of_design(fingerprint)
-    ImageSearch.where(fingerprint: fingerprint).pluck(:similar_designs)
-  end
+  # def self.similar_of_design(fingerprint)
+  #   ImageSearch.where(fingerprint: fingerprint).pluck(:similar_designs)
+  # end
 
-  def self.related_clusters_of_design(cluster_id,design_id)
-    result = {}
-    results_hash = ClusterRelation.get_similar_clusters(cluster_id)
-    results_hash.each do |key, cluster_id|
-      result[key] = similar_cluster_of_design(cluster_id)
-    end
-  end
+  # def self.related_clusters_of_design(cluster_id,design_id)
+  #   result = {}
+  #   results_hash = ClusterRelation.get_similar_clusters(cluster_id)
+  #   results_hash.each do |key, cluster_id|
+  #     result[key] = similar_cluster_of_design(cluster_id)
+  #   end
+  # end
 
-  def self.cluster_of_design(design_id)
-    ImageSearch.where(design_id: design_id).pluck(:cluster_id)
-  end
+  # def self.cluster_of_design(design_id)
+  #   ImageSearch.where(design_id: design_id).pluck(:cluster_id)
+  # end
 
-  def self.similar_cluster_of_design(cluster_id)
-    ImageSearch.where(cluster_id: cluster_id).pluck(:design_id)
-  end
+  # def self.similar_cluster_of_design(cluster_id)
+  #   ImageSearch.where(cluster_id: cluster_id).pluck(:design_id)
+  # end
 
-  def self.exact_of_design(fingerprint)
-    ImageSearch.where(fingerprint: fingerprint).pluck(:design_id)
-  end
+  # def self.exact_of_design(fingerprint)
+  #   ImageSearch.where(fingerprint: fingerprint).pluck(:design_id)
+  # end
 
-  def self.fingerprint_of_design(id)
-    ImageSearch.where(design_id: id).pluck(:fingerprint)
-  end
+  # def self.fingerprint_of_design(id)
+  #   ImageSearch.where(design_id: id).pluck(:fingerprint)
+  # end
 
   def self.process_images
     file_path = '/tmp/image_upload_data.csv'
@@ -65,25 +65,24 @@ class ImageSearch < ApplicationRecord
   #   images.update_all(similar_designs: similar_designs)
   # end
 
-  def self.find_similar_in_group(design_id)
-    fingerprint = fingerprint_of_design(design_id)
-    get_all_similar(fingerprint)
-  end
+  # def self.find_similar_in_group(design_id)
+  #   fingerprint = fingerprint_of_design(design_id)
+  #   get_all_similar(fingerprint)
+  # end
 
   def self.search_image(design_ids)
-    result = exact_of_design(fingerprint_of_design(design_ids))
-    related_designs = related_clusters_of_design(cluster_of_design(design_ids),design_ids)
-    #similar_designs = similar_of_design(fingerprint_of_design(design_ids))
-    result = result.compact
-    #similar_result = similar_designs.flatten.uniq.compact
-    #related_result = related_designs.flatten.uniq.compact
-    #similar_result = similar_result - result
-    related_result = related_result - result
-    #similar_designs_url = similar_result.nil? ? {} : ImageSearch.get_thumbnail(similar_result)
-    related_result.values.blank? ? {} : related_design_url.each do |key, value|
-      cluster_url[key] = ImageSearch.get_thumbnail(value)
-    end
-    design_url = result.nil? ? {} : ImageSearch.get_thumbnail(result)
+    fingerprints = ImageSearch.where(design_id: design_ids).pluck(:fingerprint)
+    similar_designs = ImageSearch.where(fingerprint: fingerprints).pluck(:design_id)
+    clusters = ImageSearch.where(fingerprint: fingerprints).pluck(:cluster_id)
+    all_related = ClusterRelation.where('cluster_id in (?) or related_id in (?)', clusters, clusters)
+    related_designs_cluster = all_related.pluck(:cluster_id)
+    related_designs_cluster << all_related.pluck(:related_id)
+    related_designs = ImageSearch.where(cluster_id: related_designs_cluster.flatten).pluck(:design_id)
+    # related_result.values.blank? ? {} : related_design_url.each do |key, value|
+    # end
+    related_designs = related_designs - similar_designs
+    cluster_url = related_designs.blank? ? {} : ImageSearch.get_thumbnail(related_designs)
+    design_url = similar_designs.nil? ? {} : ImageSearch.get_thumbnail(similar_designs)
     return design_url, cluster_url
   end
 
@@ -94,20 +93,44 @@ class ImageSearch < ApplicationRecord
   #   check_similar_images(image_ids,design_ids,color_histogram)
   # end
 
+  def get_cluster_data(design_ids)
+    cluster_ids = ImageSearch.where(design_id: design_ids).pluck(:cluster_id)
+    similar_designs = ImageSearch.where(cluster_id: cluster_ids).pluck(:design_id)
+    all_related = ClusterRelation.where('cluster_id in (?) or related_id in (?)', cluster_ids, cluster_ids)
+    related_designs_cluster = all_related.pluck(:cluster_id)
+    related_designs_cluster << all_related.pluck(:related_id)
+    related_designs = ImageSearch.where(cluster_id: related_designs_cluster.flatten).pluck(:design_id)
+    similar_designs.push(related_designs).flatten
+  end
+
   class << self
-    def get_data
-      ImageSearch.where.not(similar_designs: nil).find_in_batches(batch_size: 10000) do |img|
-        designs = []
-        File.open("tmp/similar_designs_#{img.first.id}.json","w") do |f|
-          img.each do |i|
-            hash = {}
-            similar_designs = []
-            i.similar_designs.each{|id| similar_designs << id.to_i}
-            hash[i.design_id] = similar_designs.to_a
-            designs << hash
+    def get_data(is_csv)
+      counter =0
+      unless is_csv == 'true'
+        ImageSearch.where.not(cluster_id: nil).find_in_batches(batch_size: 100) do |img|
+          File.open("tmp/similar_designs_#{img.first.id}.json","w") do |f|
+            img.each do |i|
+              hash = {}
+              similar_designs = []
+              i.similar_designs.each{|id| similar_designs << id.to_i}
+              hash[i.design_id] = similar_designs.to_a
+              designs << hash
+            end
+            f.write(designs.join("\n").gsub('=>',':'))
           end
-          f.write(designs.join("\n").gsub('=>',':'))
         end
+      else
+        csv_file = CSV.generate do |csv|
+          csv << ['design_id', 'similar_designs']
+          ImageSearch.where.not(cluster_id: nil).find_in_batches(batch_size: 10000) do |img|
+            img.each do |i|
+              csv << [i.design_id, (i.get_cluster_data(i.design_id) - [i.design_id]).join(',')]
+              counter +=1
+              puts counter
+            end
+          end
+        end
+        csv_file
       end
     end
 
@@ -232,44 +255,50 @@ class ImageSearch < ApplicationRecord
   #   end
   # end
 
-
-
   def self.make_fingerprint(images)
-    images_to_insert = []
-    failed_batch = []
-    images.each_with_index do |img,index|
-      # begin
-        image_exists = ImageSearch.find_by_image_id(img[:id]).present?
-        if !image_exists && (file_path = check_if_url_exists(img[:id], img[:photo_file_name])).present?
-          thumb_path = check_if_url_exists(img[:id], img[:photo_file_name], true)
-          image_search =ImageSearch.new
-          image_search.design_id = img[:design_id]
-          image_search.image_id = img[:id]
-          color_histogram, fingerprint, filename = image_details(thumb_path,file_path)
-          #image_search.phash_obj = Marshal.dump(phashion_obj)
-          image_search.phash_obj = Marshal.dump([color_histogram[:tiles_matrix], color_histogram[:color_hash], color_histogram[:color_graph], filename])
-          image_search.color_histogram = color_histogram
-          image_search.fingerprint = fingerprint
-          images_to_insert.push(image_search)
-          puts index
-        else
+    counter = 0
+    images.each_slice(10) do |imgs|
+      images_to_insert = []
+      failed_batch = []
+      imgs.each_with_index do |img, index|
+        begin
+          counter+=1
+          image_exists = ImageSearch.find_by_image_id(img[:id]).present?
+          if !image_exists && (file_path = check_if_url_exists(img[:id], img[:photo_file_name])).present?
+            thumb_path = check_if_url_exists(img[:id], img[:photo_file_name], true)
+            image_search =ImageSearch.new
+            image_search.design_id = img[:design_id]
+            image_search.image_id = img[:id]
+            color_histogram, fingerprint, filename = image_details(thumb_path,file_path)
+            #image_search.phash_obj = Marshal.dump(phashion_obj)
+            if color_histogram
+              image_search.phash_obj = Marshal.dump([color_histogram[:tiles_matrix], color_histogram[:color_hash], color_histogram[:color_graph], filename])
+              image_search.color_histogram = color_histogram
+              image_search.fingerprint = fingerprint
+              images_to_insert.push(image_search)
+              puts counter
+            end
+          end
+        rescue
+          failed_batch << [img[:id]]
           next
         end
-      rescue
-        failed_batch << [img[:id]]
-        next
       end
+
+      FailedImage.import ['image_id'], failed_batch, validate: false if failed_batch.present?
+      insert_and_update_images(images_to_insert) if images_to_insert.present?
     end
-    FailedImage.import ['image_id'], failed_batch, validate: false
-    return unless images_to_insert.present?
-    insert_and_update_images(images_to_insert) 
   end
 
   def self.image_details(thumb_path,full_path)
-    phashion_obj = Phashion::Image.new(full_path)
-    img =  Magick::Image.read(full_path).first
-    color_histogram = get_color_histogram(magick_img: img, thumb_path: thumb_path, return_tile: true)
-    [color_histogram , phashion_obj.fingerprint, phashion_obj.filename]
+    begin
+      phashion_obj = Phashion::Image.new(full_path)
+      img =  Magick::Image.read(full_path).first
+      color_histogram = get_color_histogram(magick_img: img, thumb_path: thumb_path, return_tile: true)
+      [color_histogram , phashion_obj.fingerprint, phashion_obj.filename]
+    rescue
+      return [false,false,false]
+    end
   end
 
   def self.get_color_histogram(magick_img: nil, thumb_path: nil, return_tile: false)
@@ -398,6 +427,9 @@ class ImageSearch < ApplicationRecord
     request = Net::HTTP.new uri.host
     response= request.request_head uri.path
     unless (response.code == "200")
+      image_not_present = SystemConstant.where(name: 'IMAGE_NOT_PRESENT').first.value
+      image_not_present += ",#{id}"
+      SystemConstant.where(name: 'IMAGE_NOT_PRESENT').first.update_column(:value, image_not_present)
       return ""
     end
     file_path
@@ -434,7 +466,7 @@ class ImageSearch < ApplicationRecord
       image_search = ImageSearch.where(design_id: design_ids)
       image_search.each do |image|
         phashion_object = Marshal::load(image.phash_obj)
-        path = phashion_object.filename.split('_')
+        path = phashion_object.last.split('_')
         ext_path = path.last.gsub(/original.|zoom. |small./,'thumb.')
         path.delete(path.last)
         path.push(* ext_path)

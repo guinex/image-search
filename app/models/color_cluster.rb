@@ -18,9 +18,8 @@ class ColorCluster < ApplicationRecord
   # will be calculated from this cluster                                     #
   ############################################################################
 
-  def self.generate_cluster_relation(cluster, related_cluster, type)
+  def self.generate_cluster_relation(cluster, related_cluster, type, distance=0)
     grade = ColorCluster.compare_color_percent(cluster.color_hash_percent, related_cluster.color_hash_percent)
-    distance = cluster.category_id == related_cluster.category_id ? 0 : 1
     ClusterRelation.generate(cluster.id, related_cluster.id, type, grade, distance)
   end
 

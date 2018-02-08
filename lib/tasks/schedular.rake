@@ -62,16 +62,17 @@ task :update_categories => :environment do
       results = connection.execute(query)
       connection.disconnect!
       ReadonlyConnection.reset_connection
-      results.each do |result|
-        if result['designable_type'].present?
-          category = Category.where(name: result['designable_type']).first_or_create
-          ImageSearch.where(design_id: result['id']).first.update_column(:category_id, category.id)
+      current_design_ids = {}
+      results.group_by{|h| h['designable_type']}.each{|k,v| v.select{|j| (current_design_ids[k] ||=[]) << j['id']}}
+      current_design_ids.each do |key, value|
+        if value.present?
+          category = Category.where(name: key).first_or_create
+          ImageSearch.where(design_id: value).update_all(category_id: category.id)
         end
       end
     end
   end
 end
-
 desc "This task checks if image still exists"
 task :delete_where_image_changed => :environment do
   ImageSearch.all.find_in_batches(batch_size: 10000) do |imgs|

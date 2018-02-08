@@ -2,14 +2,17 @@ class ApiController < ApplicationController
   skip_before_filter :authenticate_user!
 
   def get_similar_designs
-    fingerprint = ImageSearch.where('design_id in (?)',params[:id]).pluck(:fingerprint)
-    designs = ImageSearch.select('design_id,similar_designs').where(fingerprint: fingerprint)
-    if params[:search].present? && params[:search] == 'exact'
-      response = {id: designs.pluck(:design_id).flatten.uniq.join(',')}
-    else
-      response = {id: designs.pluck(:design_id).flatten.uniq.join(','), similar_designs: designs.pluck(:similar_designs).flatten.uniq.join(',')}
+    response_hash = {}
+    ImageSearch.where('design_id in (?)',params[:id].split(',')).each do |img|
+      response_hash[img.design_id] = img.get_cluster_data(img.design_id) - [img.design_id]
     end
-    render :json => response
+    if params[:search].present? && params[:search] == 'exact'
+      response_hash
+    else
+      response_hash
+      # response = {id: designs.pluck(:design_id).flatten.uniq.join(','), similar_designs: designs.pluck(:similar_designs).flatten.uniq.join(',')}
+    end
+    render :json => response_hash
   end
 
   def international_catalog_designs

@@ -12,6 +12,12 @@
     cursor:pointer;
   }
 
+-if @url && @related_url
+  -total_dups = 0
+  -total_dups+=@url.keys.size
+  -total_dups+=@related_url.keys.size
+.jumbotron
+  ="total dups: #{total_dups}"
 -if @url.present?
   #same_images{style:"float:left"}
     %table

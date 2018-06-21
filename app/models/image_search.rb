@@ -4,6 +4,7 @@ class ImageSearch < ApplicationRecord
   require 'open-uri'
   require 'rubygems'
   require 'rmagick'
+  include DataProcessor
   TILE_COLS = 3
   TILE_ROWS = 4
   serialize :color_histogram, Hash
@@ -11,72 +12,18 @@ class ImageSearch < ApplicationRecord
   belongs_to :color_cluster
   #after_create :add_to_cluster, :create_color
 
-  # def self.similar_of_design(fingerprint)
-  #   ImageSearch.where(fingerprint: fingerprint).pluck(:similar_designs)
-  # end
-
-  # def self.related_clusters_of_design(cluster_id,design_id)
-  #   result = {}
-  #   results_hash = ClusterRelation.get_similar_clusters(cluster_id)
-  #   results_hash.each do |key, cluster_id|
-  #     result[key] = similar_cluster_of_design(cluster_id)
-  #   end
-  # end
-
-  # def self.cluster_of_design(design_id)
-  #   ImageSearch.where(design_id: design_id).pluck(:cluster_id)
-  # end
-
-  # def self.similar_cluster_of_design(cluster_id)
-  #   ImageSearch.where(cluster_id: cluster_id).pluck(:design_id)
-  # end
-
-  # def self.exact_of_design(fingerprint)
-  #   ImageSearch.where(fingerprint: fingerprint).pluck(:design_id)
-  # end
-
-  # def self.fingerprint_of_design(id)
-  #   ImageSearch.where(design_id: id).pluck(:fingerprint)
-  # end
-
   def self.process_images
     file_path = '/tmp/image_upload_data.csv'
     images = SmarterCSV.process(file_path)
     make_fingerprint(images) if images.present?
   end
 
-  # def self.remove_similar(design_id,id)
-  #   fingerprint = fingerprint_of_design(design_id)
-  #   similar_designs = similar_of_design(fingerprint)
-  #   similar_designs.flatten!
-  #   similar_designs.delete(* id)
-  #   ImageSearch.where(fingerprint: fingerprint).update_all(similar_designs: similar_designs)
-  # end
-
-  # def self.add_similar(design_id,id)
-  #   images = ImageSearch.where(fingerprint:fingerprint_of_design(design_id))
-  #   similar_design_array = exact_of_design(fingerprint_of_design(id))
-  #   similar_design_array.flatten!
-  #   similar_design_array.uniq!
-  #   similar_designs = images.collect(&:similar_designs)
-  #   similar_designs.flatten!
-  #   similar_designs.uniq!
-  #   similar_designs.push(* similar_design_array)
-  #   images.update_all(similar_designs: similar_designs)
-  # end
-
-  # def self.find_similar_in_group(design_id)
-  #   fingerprint = fingerprint_of_design(design_id)
-  #   get_all_similar(fingerprint)
-  # end
-
   def self.search_image(design_ids)
     fingerprints = ImageSearch.where(design_id: design_ids).pluck(:fingerprint)
     similar_designs = ImageSearch.where(fingerprint: fingerprints).pluck(:design_id)
     clusters = ImageSearch.where(fingerprint: fingerprints).pluck(:cluster_id)
     all_related = ClusterRelation.where('cluster_id in (?) or related_id in (?)', clusters, clusters)
-    related_designs_cluster = all_related.pluck(:cluster_id)
-    related_designs_cluster << all_related.pluck(:related_id)
+    related_designs_cluster = all_related.pluck(:cluster_id) + all_related.pluck(:related_id)
     related_designs = ImageSearch.where(cluster_id: related_designs_cluster.flatten).pluck(:design_id)
     # related_result.values.blank? ? {} : related_design_url.each do |key, value|
     # end
@@ -93,177 +40,74 @@ class ImageSearch < ApplicationRecord
   #   check_similar_images(image_ids,design_ids,color_histogram)
   # end
 
-  def get_cluster_data(design_ids)
-    cluster_ids = ImageSearch.where(design_id: design_ids).pluck(:cluster_id)
-    similar_designs = ImageSearch.where(cluster_id: cluster_ids).pluck(:design_id)
-    all_related = ClusterRelation.where('cluster_id in (?) or related_id in (?)', cluster_ids, cluster_ids)
-    related_designs_cluster = all_related.pluck(:cluster_id)
-    related_designs_cluster << all_related.pluck(:related_id)
-    related_designs = ImageSearch.where(cluster_id: related_designs_cluster.flatten).pluck(:design_id)
-    similar_designs.push(related_designs).flatten
+  #IMPROVISE THIS METHOD
+  def self.get_cluster_data(design_ids, get_all_results=false)
+    result_set = {}
+    design_ids.each_slice(500) do |ids|
+      cluster_data = ImageSearch.select('design_id, cluster_id').where(design_id: ids)
+      cluster_data.each do |data|
+        result_set[data.cluster_id] ||= Set.new
+        result_set[data.cluster_id] << data.design_id
+      end
+    end
+    if get_all_results
+      cluster_data = ImageSearch.select('design_id, cluster_id').where(cluster_id: result_set.keys)
+      cluster_data.each do |data|
+        result_set[data.cluster_id] ||= Set.new
+        result_set[data.cluster_id] << data.design_id
+      end
+    end
+    result_set
   end
 
+  def design_id
+    self[:design_id].to_i
+  end
   class << self
-    def get_data(is_csv)
-      counter =0
-      unless is_csv == 'true'
-        ImageSearch.where.not(cluster_id: nil).find_in_batches(batch_size: 100) do |img|
-          File.open("tmp/similar_designs_#{img.first.id}.json","w") do |f|
-            img.each do |i|
-              hash = {}
-              similar_designs = []
-              i.similar_designs.each{|id| similar_designs << id.to_i}
-              hash[i.design_id] = similar_designs.to_a
-              designs << hash
-            end
-            f.write(designs.join("\n").gsub('=>',':'))
-          end
-        end
-      else
-        csv_file = CSV.generate do |csv|
-          csv << ['design_id', 'similar_designs']
-          ImageSearch.where.not(cluster_id: nil).find_in_batches(batch_size: 10000) do |img|
-            img.each do |i|
-              csv << [i.design_id, (i.get_cluster_data(i.design_id) - [i.design_id]).join(',')]
-              counter +=1
-              puts counter
-            end
-          end
-        end
-        csv_file
-      end
-    end
-
-    def bestsellers(file_name)
-      file_path = '/tmp/bestsellers.csv'
-      bestsellers = SmarterCSV.process(file_path)
-      designs = []
-      header = false
-      CSV.open("tmp/#{file_name}_bestseller.csv", "w", {col_sep: ","}) do |f|
-        f << %w(design_id average_rating discount_price sell_count margin designer_rating total_reviews average_rating_by_user link ) unless header
-        header = true
-        btslr_design = []
-        btslr_design_customer = []
-        query = "select designs.id, designs.average_rating, discount_price, sell_count,
-        (discount_price*transaction_rate)/100 as margin, 
-        designers.average_rating as designer_rating 
-        from designs, designers 
-        where designs.designer_id = designers.id 
-        and designs.id in (#{bestsellers.collect{|btslr| btslr[:id]}.join(',')}) 
-        group by 1,2,3,4,6, designers.transaction_rate"
-        connection = ReadonlyConnection.connect
-        results = connection.execute(query)
-        results.each{|r| btslr_design << r}
-
-        query = "select design_id, count(id), avg(rating) 
-        from  reviews where reviews.design_id in (#{bestsellers.collect{|btslr| btslr[:id]}.join(',')})
-        and reviews.order_id is not null
-        group by design_id"
-        results = connection.execute(query)
-        results.each{|r| btslr_design_customer << r}
-
-        bestsellers.collect{|btslr| btslr[:id]}.each do |id|
-          row = []
-          btslr_design.select{|r| r['id'] == id.to_i}.first.each{|k,v| row << v}
-          if (rating = btslr_design_customer.select{|r| r['design_id'] == id.to_i}.first).present?
-            rating.each{|k,v| row << v if(k != 'design_id')}
-          else
-            row << ''
-            row << ''
-          end
-          row << "=HYPERLINK(\"http://www.mirraw.com/d/#{id}\")"
-          f << row
-        end
-        connection.disconnect!
-        ReadonlyConnection.reset_connection
-      end
-      header = false
-      CSV.open("tmp/#{file_name}.csv", "w", {col_sep: ","}) do |f|
-        f << %w(btslr_design_id design_id average_rating discount_price sell_count margin designer_rating total_reviews average_rating_by_user link ) unless header
-        header = true
-
-        bestsellers.each do |btslr|
-          if (design = ImageSearch.where(design_id: btslr[:id]).first).present?
-            next if design.similar_designs.blank?
-            result_set = []
-            result_set_customer_rating = []
-            similar_designs = design.similar_designs
-            design_id = design.design_id
-
-            query = "select designs.id, designs.average_rating, discount_price, sell_count, 
-            (discount_price*transaction_rate)/100 as margin, designers.average_rating as designer_rating 
-            from designs, designers 
-            where designs.designer_id = designers.id and designs.id in (#{similar_designs.join(',')}) 
-            group by 1,2,3,4,6, designers.transaction_rate"
-            connection = ReadonlyConnection.connect
-            results = connection.execute(query)           
-            results.each{|r| result_set << r}
-
-            query = "select design_id, count(id), avg(rating) 
-            from  reviews 
-            where reviews.design_id in (#{similar_designs.join(',')}) and reviews.order_id is not null
-            group by design_id"
-            results = connection.execute(query)
-            results.each{|r| result_set_customer_rating << r}
-
-
-            similar_designs.each do |id|
-              row = [design_id]
-              result_set.select{|r| r['id'] == id.to_i}.first.each{|k,v| row << v}
-              if (rating = result_set_customer_rating.select{|r| r['design_id'] == id.to_i}.first).present?
-                rating.each{|k,v| row << v if(k != 'design_id')}
-              else
-                row << ''
-                row << ''
-              end
-              row << "=HYPERLINK(\"http://www.mirraw.com/d/#{id}\")"
-              f << row
-            end
-            connection.disconnect!
-            ReadonlyConnection.reset_connection
-          else
-            next
-          end
-        end
-      end
+    def mapper(file_name, parameters)
+      mapper = DataProcessor::FileDataMapper.new
+      mapper.find_similar_in_csv(file_name, parameters)
     end
   end
 
-  def create_color
-    # color_histogram[:color_hash].keys.each do |color|
-    #   ImageColor.where(color_hex: color).first_or_create
-    # end
-  end
+  # def create_color
+  #   # color_histogram[:color_hash].keys.each do |color|
+  #   #   ImageColor.where(color_hex: color).first_or_create
+  #   # end
+  # end
 
   def add_to_cluster
-    if (cluster_id = ImageSearch.where(fingerprint: fingerprint).pluck(:cluster_id).compact).present?
-      update_column(:cluster_id, cluster_id.first)
+    if (cluster_id = ImageSearch.where(fingerprint: fingerprint).uniq.pluck(:cluster_id).compact).present?
+      new_gray_scaled = color_histogram[:tiles_matrix_gray_scaled]
+      ImageSearch.where(cluster_id: cluster_id).each do |image_search|
+        old_gray_scale = image_search.color_histogram[:tiles_matrix_gray_scaled]
+        new_cluster = false
+        old_gray_scale.each_with_index do |element, index|
+          if (element - new_gray_scaled[index]).abs > 100
+            new_cluster = true
+            break
+          end
+        end
+        new_cluster ? ColorCluster.assign_cluster(self) : update_column(:cluster_id, cluster_id.first)
+      end
     else
-      ColorCluster.assign_cluster(id)
+      ColorCluster.assign_cluster(self)
     end
   end
   private
 
-  # def add_to_cluster_by_task(ids)
-  #   image_search = ImageSearch.where(id: ids)
-  #   image_search.each do |image_sr|
-  #     if (cluster_id = ImageSearch.where(fingerprint: image_sr.fingerprint).pluck(:cluster_id).compact).present?
-  #       image_sr.update_column(:cluster_id, cluster_id.first)
-  #     else
-  #       ColorCluster.assign_cluster(image_sr.id)
-  #     end
-  #   end
-  # end
-
   def self.make_fingerprint(images)
     counter = 0
-    images.each_slice(10) do |imgs|
+    images.each_slice(500) do |imgs|
+      image_ids = imgs.collect{|i| i[:id]}
+      existing_images = ImageSearch.where(image_id: image_ids).pluck(:id)
       images_to_insert = []
       failed_batch = []
       imgs.each_with_index do |img, index|
+        image_exists = existing_images.include?(img[:id].to_s)
         begin
           counter+=1
-          image_exists = ImageSearch.find_by_image_id(img[:id]).present?
+          # image_exists = ImageSearch.find_by_image_id(img[:id]).present?
           if !image_exists && (file_path = check_if_url_exists(img[:id], img[:photo_file_name])).present?
             thumb_path = check_if_url_exists(img[:id], img[:photo_file_name], true)
             image_search =ImageSearch.new
@@ -276,9 +120,9 @@ class ImageSearch < ApplicationRecord
               image_search.color_histogram = color_histogram
               image_search.fingerprint = fingerprint
               images_to_insert.push(image_search)
-              puts counter
             end
           end
+          puts counter
         rescue
           failed_batch << [img[:id]]
           next

@@ -1,14 +1,14 @@
 class ColorCluster < ApplicationRecord
-  has_many :image_search
+  has_many :image_searches, :foreign_key => "cluster_id"
   has_many :cluster_relation
   serialize :color_hash_percent, Hash
   serialize :gray_scaled, Array
   serialize :color_scaled, Array
 
-  def self.assign_cluster(image_search_id)
-    imagesearch = ImageSearch.find_by_id(image_search_id)
-    cluster = ColorCluster.create(gray_scaled: imagesearch.color_histogram[:tiles_matrix_gray_scaled], color_scaled: imagesearch.color_histogram[:tiles_matrix_colored], color_hash_percent: imagesearch.color_histogram[:color_hash], category_id: imagesearch.category_id)
-    imagesearch.update_column(:cluster_id,cluster.id)
+  def self.assign_cluster(image_search)
+    # image_search = Image_Search.find_by_id(image_search_id)
+    cluster = ColorCluster.create(gray_scaled: image_search.color_histogram[:tiles_matrix_gray_scaled], color_scaled: image_search.color_histogram[:tiles_matrix_colored], color_hash_percent: image_search.color_histogram[:color_hash], category_id: image_search.category_id)
+    image_search.update_column(:cluster_id,cluster.id)
   end
 
   private

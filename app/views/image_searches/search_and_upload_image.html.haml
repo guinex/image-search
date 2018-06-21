@@ -3,7 +3,7 @@
     = label_tag(:design_id, "Search for:")
     = text_field_tag(:design_id)
     = submit_tag("Search")
--if can? :manage, :admin
+-if (can? :manage, :admin) || current_user.has_role?('marketing')
   #mirraw_image_upload
     = form_tag search_and_upload_panel_url, :method => 'POST', :multipart => true do
       = label_tag :csv_file, 'CSV File'
@@ -11,9 +11,27 @@
       = submit_tag :update
 -if can? :manage, :admin
   #mirraw_bestsellers
-    = form_tag find_bestsellers_panel_url, :method => 'POST', :multipart => true do
-      = label_tag :csv_file, 'CSV File'
-      = file_field_tag :csv_file, :accept => 'text/csv', :required => true
-      = submit_tag :find_bestseller
-=render partial: 'add_and_check_similar'
+    = form_tag create_files_panel_url, :method => 'POST', :multipart => true do
+      %table
+        %th
+          %td
+            Find & search bestellers
+        %tr
+          %td
+            = label_tag :csv_file, 'CSV File'
+          %td
+            = file_field_tag :csv_file, :accept => 'text/csv', :required => true
+        %tr
+          %td
+            = label_tag :replace_within, 'Replace Within'
+          %td
+            = select_tag :replace_within, options_for_select(['Y', 'N'])
+        %tr
+          %td
+            = label_tag :find_within, 'Find Within'
+          %td
+            = select_tag :find_within, options_for_select(['Y', 'N'])
+        %tr
+          %td= submit_tag :find_bestseller
+  =render partial: 'add_and_check_similar'
 =render partial: 'shared/search_result'

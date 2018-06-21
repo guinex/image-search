@@ -68,9 +68,9 @@ class ManageCatalogsController < ApplicationController
     if request.xhr?
       if params[:design_id].present?
         if params[:geo] == 'international'
-          ManageCatalog.where(design_id: params[:design_id].to_s, geo:'international').first_or_create.update_column(:processing_state,'waiting')
+          ManageCatalog.where(design_id: params[:design_id].to_s).first_or_create.update_column(:processing_state,'remove_international')
         elsif params[:geo] == 'domestic'
-          ManageCatalog.where(design_id: params[:design_id].to_s, geo:'domestic').first_or_create.update_column(:processing_state,'waiting')
+          ManageCatalog.where(design_id: params[:design_id].to_s).first_or_create.update_column(:processing_state,'remove_domestic')
         end
         render json: {status: 'ok'}
       else 

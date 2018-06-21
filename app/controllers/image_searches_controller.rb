@@ -78,38 +78,42 @@ class ImageSearchesController < ApplicationController
     render "image_searches/search_and_upload_image"
   end
 
-  def remove_similar_design
-    ImageSearch.remove_similar(params[:id],params[:similar_design_id])
-    render json: {status: 'ok'}
-  end
+  # def remove_similar_design
+  #   ImageSearch.remove_similar(params[:id],params[:similar_design_id])
+  #   render json: {status: 'ok'}
+  # end
 
-  def add_similar_design
-    ImageSearch.add_similar(params[:id],params[:similar_design_id])
-    render json: {status: 'ok'} 
-  end
+  # def add_similar_design
+  #   ImageSearch.add_similar(params[:id],params[:similar_design_id])
+  #   render json: {status: 'ok'} 
+  # end
 
-  def re_check_similar
-    ImageSearch.find_similar_in_group(params[:id])
-    render json: {status: 'ok'}
-  end
+  # def re_check_similar
+  #   ImageSearch.find_similar_in_group(params[:id])
+  #   render json: {status: 'ok'}
+  # end
 
-  def get_upload_data
-    if params[:csv] =='true'
-       send_data ImageSearch.get_data(params[:csv]), filename: "tmp/duplicate_designs_{Date.today()}.csv"
-    else
-      ImageSearch.get_data(params[:csv])
-      render json: {status: 'ok'}
-    end
-  end
+  #needs refactoring use P4 for a while
+  # def get_upload_data
+  #   file_mapper =  DataProcessor::Processor.new
+  #   if params[:csv] =='true'
+  #      send_data file_mapper.process_and_get_data, filename: "tmp/duplicate_designs_{Date.today()}.csv"
+  #   else
+  #     file_mapper.process_and_get_data
+  #     render json: {status: 'ok'}
+  #   end
+  # end
 
-  def find_bestsellers
+  def create_files
+    file_mapper =  DataProcessor::Processor.new
     if (params[:csv_file]).present?
       file = params[:csv_file].read.force_encoding("ASCII-8BIT").encode('UTF-8', undef: :replace, replace: '')
-      filename = 'bestsellers.csv'
+      filename = 'raw_file.csv'
       File.open(File.join('/tmp/', filename), 'w+') { |f| f.write file }
-      ImageSearch.bestsellers(params[:csv_file].original_filename.split('.')[0])
+      ImageSearch.mapper(params[:csv_file].original_filename.split('.')[0], params)
       render json: {status: 'ok'}
     else
+      file_mapper.fetch_data
       render json: {status: 'not processed'}
     end
   end

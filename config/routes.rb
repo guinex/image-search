@@ -10,7 +10,7 @@ Rails.application.routes.draw do
   get '/search/:design_id' => 'image_searches#search_similar', as: 'search_similar'
   get '/search/' => 'image_searches#search_and_upload_image', as: 'image_search_app'
   post '/search/' => 'image_searches#search_and_upload_image', as: 'search_and_upload_panel'
-  post '/bestsellers/' => 'image_searches#find_bestsellers', as: 'find_bestsellers_panel'
+  post '/bestsellers/' => 'image_searches#create_files', as: 'create_files_panel'
   get 'api/get_similar_designs' => 'api#get_similar_designs'
   post '/search/:design_id/add_similar_design' => 'image_searches#add_similar_design', as: 'add_similar'
   post '/search/:design_id/remove_similar_design' => 'image_searches#remove_similar_design', as: 'remove_similar'

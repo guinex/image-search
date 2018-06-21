@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170824065251) do
+ActiveRecord::Schema.define(version: 20180315073501) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -76,6 +76,7 @@ ActiveRecord::Schema.define(version: 20170824065251) do
     t.text    "color_histogram"
     t.string  "cluster_id"
     t.integer "category_id"
+    t.string  "parent_relation_id"
     t.index ["design_id"], name: "index_image_searches_on_design_id", using: :btree
     t.index ["fingerprint"], name: "index_image_searches_on_fingerprint", using: :btree
   end
@@ -96,6 +97,11 @@ ActiveRecord::Schema.define(version: 20170824065251) do
     t.string   "design_id"
     t.string   "geo"
     t.string   "processing_state", default: "waiting"
+  end
+
+  create_table "parent_cluster_relations", id: false, force: :cascade do |t|
+    t.integer "relation_id"
+    t.integer "parent_cluster_id"
   end
 
   create_table "roles", force: :cascade do |t|

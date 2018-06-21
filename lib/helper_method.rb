@@ -7,20 +7,20 @@ module HelperMethod
 ###################
   RELATION = {
               '1' => {
-                alike: [1,4,7,10].freeze,
-                bottom_alike: [4,7,10].freeze,
-                top_alike: [1,4,7].freeze
+                alike: [1,4,7,10].freeze
               }.freeze,
               '2' =>{
-                left_alike: [3,4,6,7,9,10].freeze,
-                right_alike: [5,4,8,7,11,10].freeze
+                side_alike: [3,4,6,7,9,10].freeze
               }.freeze,
               '3' =>{
                 base_alike: [4,6,7,8,9,10,11].freeze
                 },
               '4' => {
                 background_alike: [0,2,9,11].freeze
-              }
+                },
+              '5'=> {
+                color_variant: [-1].freeze
+                }
             }.freeze
   def self.split_file(file_path, into)
     file = '/tmp/original_big_file.csv'
@@ -43,10 +43,10 @@ module HelperMethod
     (Math.sqrt(d_hash.values.collect{|rgb| rgb*rgb}.inject(:+)) / average)
   end
 
-  def self.calculate_relation(matrix1, matrix2)
+  def self.calculate_relation(matrix1, matrix2, threshold = 1000)
     result_set = []
     matrix1.each_with_index do |element, index|
-      result_set << index if (element - matrix2[index]).abs < 10000
+      result_set << index if (element - matrix2[index]).abs < threshold
     end
     get_relation(result_set,1)
   end
@@ -72,11 +72,43 @@ module HelperMethod
     elsif RELATION[index.to_s].present?
       get_relation(metric, index+1)
     end
-    puts '__________________________relation_rejected____________________________'
+    puts '__________________________least alike____________________________'
     return metric.size > 5 ? metric.size : false
   end
 
+
+  # def self.sort_file_with_similar_designs(data)
+  #   # result = []
+  #   # data.each do |design_data|
+  #   #   if design_data[:similar_designs].present?
+  #   #     design_data[:similar_designs].split(',').each do |similar_id|
+  #   #       get_position(data, similar_id, design_data[:design_id], design_data[:position])
+  #   #     end
+  #   #   elsif position_swap.nil?
+  #   #     result[design_data[:design_id].to_i] = design_data[:position]
+  #   #   end
+  #   # end
+  #   result = {}
+  #   data.each do |design_data|
+  #     result[design_data[:design_id]] = {similar_designs: design_data[:similar_designs], position: design_data[:position]}
+  #   end
+  #   result.each do |res, value|
+  #     unless value[:similar_designs].nil?
+  #       value[:similar_designs].split(',').each do |id|
+  #         if result[id][:position].to_i < value[:position]
+  #           result.delete(res)
+  #         end
+  #       end
+  #     end
+  #   end
+  # end
+
+
   def self.calculate_array(block, metric)
-    (block == metric)
+    if block.first == -1
+      block = [0,1,2,3,4,5,6,7,8,9,10,11]
+    end
+    matches = (block & metric).size
+    (matches/block.size.to_f) > 0.7
   end
 end

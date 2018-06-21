@@ -1,0 +1,1 @@
+PROCESS_NEW_EVENT='process_new'.freeze
